@@ -1,0 +1,8 @@
+{
+  "name": "Autocontrol Sanitario Pro",
+  "description": "Plan genérico de autocontrol de carnicerías",
+  "requestFramePermissions": [
+    "camera"
+  ],
+  "prompt": ""
+}
