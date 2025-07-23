@@ -39,7 +39,7 @@ export interface TechnicalSheet { id: string; productName: string; ingredients: 
 export interface Ingredient { id: string; name: string; lot: string; isAllergen: boolean; }
 
 // Se leerá desde las variables de entorno que configuraremos en Dokploy
-const API_URL = import.meta.env.VITE_API_URL || '';
+const API_URL = import.meta.env.VITE_API_URL || 'http://autocontrolsanitarioapp-backend-5plj5f-f5ea1c-31-97-193-114.traefik.me';
 
 const AppContent: React.FC = () => {
   const { success, error } = useNotifications();
