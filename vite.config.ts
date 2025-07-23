@@ -24,7 +24,14 @@ export default defineConfig(({ mode }) => {
       },
       server: {
         port: 5173,
-        host: true
+        host: true,
+        proxy: {
+          '/api': {
+            target: 'http://autocontrolsanitarioapp-backend-5plj5f-f5ea1c-31-97-193-114.traefik.me',
+            changeOrigin: true,
+            secure: false
+          }
+        }
       },
       preview: {
         port: 4173,
