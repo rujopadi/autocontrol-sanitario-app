@@ -29,7 +29,8 @@ export default defineConfig(({ mode }) => {
           '/api': {
             target: 'http://autocontrolsanitarioapp-backend-5plj5f-f5ea1c-31-97-193-114.traefik.me',
             changeOrigin: true,
-            secure: false
+            secure: false,
+            rewrite: (path) => path
           }
         }
       },
