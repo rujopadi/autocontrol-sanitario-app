@@ -3,8 +3,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    expose:
-      - "80"
+    ports:
+      - "8080:80"
     environment:
       - VITE_API_URL=${VITE_API_URL}
       - VITE_APP_NAME=${VITE_APP_NAME:-Autocontrol Sanitario Pro}

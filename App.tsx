@@ -41,6 +41,10 @@ export interface Ingredient { id: string; name: string; lot: string; isAllergen:
 // Se leerá desde las variables de entorno que configuraremos en Dokploy
 const API_URL = import.meta.env.VITE_API_URL || 'http://autocontrolsanitarioapp-backend-5plj5f-f5ea1c-31-97-193-114.traefik.me';
 
+// Debug: Log the API URL being used
+console.log('🔗 API URL:', API_URL);
+console.log('🌍 Environment:', import.meta.env.MODE);
+
 const AppContent: React.FC = () => {
   const { success, error } = useNotifications();
   const [currentUser, setCurrentUser] = useState<User | null>(null);
