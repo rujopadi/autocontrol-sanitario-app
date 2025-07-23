@@ -3,6 +3,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import Login from './Login';
 import Register from './Register';
 import Dashboard from './Dashboard';
+import { NotificationProvider, useNotifications } from './NotificationContext';
+import NotificationContainer from './NotificationContainer';
 
 // --- INTERFACES (Sin cambios) ---
 export interface EstablishmentInfo {
@@ -37,9 +39,10 @@ export interface TechnicalSheet { id: string; productName: string; ingredients: 
 export interface Ingredient { id: string; name: string; lot: string; isAllergen: boolean; }
 
 // Se leerá desde las variables de entorno que configuraremos en Dokploy
-const API_URL = process.env.API_URL || 'http://localhost:5000';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
-const App: React.FC = () => {
+const AppContent: React.FC = () => {
+  const { success, error } = useNotifications();
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
   const [authView, setAuthView] = useState<'login' | 'register'>('login');
@@ -50,17 +53,17 @@ const App: React.FC = () => {
   const [establishmentInfo, setEstablishmentInfo] = useState<EstablishmentInfo | null>(null);
   const [deliveryRecords, setDeliveryRecords] = useState<DeliveryRecord[]>([]);
   // ... resto de estados
-  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
-  const [productTypes, setProductTypes] = useState<ProductType[]>([]);
-  const [storageUnits, setStorageUnits] = useState<StorageUnit[]>([]);
-  const [storageRecords, setStorageRecords] = useState<StorageRecord[]>([]);
-  const [dailySurfaces, setDailySurfaces] = useState<DailySurface[]>([]);
-  const [dailyCleaningRecords, setDailyCleaningRecords] = useState<DailyCleaningRecord[]>([]);
-  const [frequentAreas, setFrequentAreas] = useState<FrequentArea[]>([]);
+  const [suppliers] = useState<Supplier[]>([]);
+  const [productTypes] = useState<ProductType[]>([]);
+  const [storageUnits] = useState<StorageUnit[]>([]);
+  const [storageRecords] = useState<StorageRecord[]>([]);
+  const [dailySurfaces] = useState<DailySurface[]>([]);
+  const [dailyCleaningRecords] = useState<DailyCleaningRecord[]>([]);
+  const [frequentAreas] = useState<FrequentArea[]>([]);
   const [costings, setCostings] = useState<Costing[]>([]);
-  const [outgoingRecords, setOutgoingRecords] = useState<OutgoingRecord[]>([]);
-  const [elaboratedRecords, setElaboratedRecords] = useState<ElaboratedRecord[]>([]);
-  const [technicalSheets, setTechnicalSheets] = useState<TechnicalSheet[]>([]);
+  const [outgoingRecords] = useState<OutgoingRecord[]>([]);
+  const [elaboratedRecords] = useState<ElaboratedRecord[]>([]);
+  const [technicalSheets] = useState<TechnicalSheet[]>([]);
   
 
   const apiFetch = useCallback(async (url: string, options: RequestInit = {}) => {
@@ -128,9 +131,9 @@ const App: React.FC = () => {
                 setEstablishmentInfo(establishmentData);
                 setDeliveryRecords(deliveryData);
                 
-            } catch (error) {
-                console.error(error);
-                alert('No se pudo conectar con el servidor.');
+            } catch (err) {
+                console.error(err);
+                error('Error de conexión', 'No se pudo conectar con el servidor.');
             } finally {
                 setIsLoading(false);
             }
@@ -151,8 +154,9 @@ const App: React.FC = () => {
             throw new Error(data.message || 'Error al iniciar sesión.');
         }
         setToken(data.token);
+        success('Inicio de sesión exitoso', `Bienvenido ${data.user?.name || ''}`);
     } catch (error: any) {
-        alert(error.message);
+        error('Error de autenticación', error.message);
     }
   };
 
@@ -168,8 +172,9 @@ const App: React.FC = () => {
             throw new Error(data.message || 'Error al registrar.');
         }
         setToken(data.token);
+        success('Registro exitoso', `Bienvenido ${details.name}`);
     } catch (error: any) {
-        alert(error.message);
+        error('Error de registro', error.message);
     }
   };
   
@@ -191,8 +196,9 @@ const App: React.FC = () => {
         const newRecord = await response.json();
          if (!response.ok) throw new Error(newRecord.message || 'Error al guardar el registro.');
         setDeliveryRecords(prev => [newRecord, ...prev]);
+        success('Registro añadido', 'El registro de recepción se ha guardado correctamente.');
     } catch (error: any) {
-        alert(error.message);
+        error('Error al guardar', error.message);
     }
   };
 
@@ -201,8 +207,9 @@ const App: React.FC = () => {
         const response = await apiFetch(`/api/records/delivery/${id}`, { method: 'DELETE' });
         if (!response.ok) throw new Error('Error al eliminar el registro.');
         setDeliveryRecords(prev => prev.filter(r => r.id !== id));
+        success('Registro eliminado', 'El registro de recepción se ha eliminado correctamente.');
     } catch (error: any) {
-        alert(error.message);
+        error('Error al eliminar', error.message);
     }
   };
   
@@ -215,8 +222,9 @@ const App: React.FC = () => {
         const newUser = await response.json();
         if (!response.ok) throw new Error(newUser.message || 'Error al crear usuario.');
         setUsers(prev => [...prev, newUser]);
+        success('Usuario creado', `El usuario ${details.name} se ha creado correctamente.`);
     } catch (error: any) {
-        alert(error.message);
+        error('Error al crear usuario', error.message);
     }
   };
 
@@ -229,8 +237,9 @@ const App: React.FC = () => {
         const updatedUser = await response.json();
         if (!response.ok) throw new Error(updatedUser.message || 'Error al actualizar el usuario.');
         setUsers(prev => prev.map(u => (u.id === id ? updatedUser : u)));
+        success('Usuario actualizado', `Los datos de ${details.name} se han actualizado correctamente.`);
     } catch (error: any) {
-        alert(error.message);
+        error('Error al actualizar usuario', error.message);
     }
   };
 
@@ -239,8 +248,9 @@ const App: React.FC = () => {
         const response = await apiFetch(`/api/users/${id}`, { method: 'DELETE' });
         if (!response.ok) throw new Error('Error al eliminar el usuario.');
         setUsers(prev => prev.filter(u => u.id !== id));
+        success('Usuario eliminado', 'El usuario se ha eliminado correctamente.');
     } catch (error: any) {
-        alert(error.message);
+        error('Error al eliminar usuario', error.message);
     }
   };
   
@@ -253,8 +263,9 @@ const App: React.FC = () => {
           const updatedInfo = await response.json();
           if (!response.ok) throw new Error(updatedInfo.message || 'Error al actualizar la información.');
           setEstablishmentInfo(updatedInfo);
+          success('Información actualizada', 'Los datos del establecimiento se han guardado correctamente.');
       } catch (error: any) {
-          alert(error.message);
+          error('Error al actualizar', error.message);
       }
   };
 
@@ -262,69 +273,73 @@ const App: React.FC = () => {
       return <div className="login-container"><h1>Cargando...</h1></div>;
   }
 
-  if (!currentUser) {
-    return authView === 'login' ? (
-      <Login onLoginSuccess={handleLogin} onSwitchToRegister={() => setAuthView('register')} />
-    ) : (
-      <Register onRegister={handleRegister} onSwitchToLogin={() => setAuthView('login')} />
-    );
-  }
-  
-  if (!establishmentInfo) {
-      // Este estado puede ocurrir si el admin no ha configurado la info todavía
-      // Podemos renderizar solo la página de settings o un loader específico
-      // return <div className="login-container"><h1>Configuración inicial requerida...</h1></div>;
-  }
-
-
   return (
-    <Dashboard
-      currentUser={currentUser}
-      onLogout={handleLogout}
-      users={users}
-      onAddUser={handleAddUser}
-      onDeleteUser={handleDeleteUser}
-      onUpdateUser={handleUpdateUser}
-      deliveryRecords={deliveryRecords}
-      onAddDeliveryRecord={handleAddDeliveryRecord}
-      onDeleteDeliveryRecord={handleDeleteDeliveryRecord}
-      establishmentInfo={establishmentInfo!} // Usamos ! porque asumimos que el dashboard no se renderiza sin esto
-      onUpdateEstablishmentInfo={handleUpdateEstablishmentInfo}
-      // Pasa el resto de props y handlers necesarios...
-      suppliers={suppliers}
-      onAddSupplier={() => {}}
-      onDeleteSupplier={() => {}}
-      productTypes={productTypes}
-      onAddProductType={() => {}}
-      onDeleteProductType={() => {}}
-      storageUnits={storageUnits}
-      onAddStorageUnit={() => {}}
-      onDeleteStorageUnit={() => {}}
-      storageRecords={storageRecords}
-      onAddStorageRecord={() => {}}
-      onDeleteStorageRecord={() => {}}
-      dailySurfaces={dailySurfaces}
-      onAddDailySurface={() => {}}
-      onDeleteDailySurface={() => {}}
-      dailyCleaningRecords={dailyCleaningRecords}
-      onAddDailyCleaningRecord={() => {}}
-      onDeleteDailyCleaningRecord={() => {}}
-      frequentAreas={frequentAreas}
-      onAddFrequentArea={() => {}}
-      onDeleteFrequentArea={() => {}}
-      onCleanFrequentArea={() => {}}
-      costings={costings}
-      onSetCostings={setCostings}
-      outgoingRecords={outgoingRecords}
-      onAddOutgoingRecord={() => {}}
-      onDeleteOutgoingRecord={() => {}}
-      elaboratedRecords={elaboratedRecords}
-      onAddElaboratedRecord={() => {}}
-      onDeleteElaboratedRecord={() => {}}
-      technicalSheets={technicalSheets}
-      onAddTechnicalSheet={() => {}}
-      onDeleteTechnicalSheet={() => {}}
-    />
+    <>
+      {!currentUser ? (
+        authView === 'login' ? (
+          <Login onLoginSuccess={handleLogin} onSwitchToRegister={() => setAuthView('register')} />
+        ) : (
+          <Register onRegister={handleRegister} onSwitchToLogin={() => setAuthView('login')} />
+        )
+      ) : (
+        <Dashboard
+          currentUser={currentUser}
+          onLogout={handleLogout}
+          users={users}
+          onAddUser={handleAddUser}
+          onDeleteUser={handleDeleteUser}
+          onUpdateUser={handleUpdateUser}
+          deliveryRecords={deliveryRecords}
+          onAddDeliveryRecord={handleAddDeliveryRecord}
+          onDeleteDeliveryRecord={handleDeleteDeliveryRecord}
+          establishmentInfo={establishmentInfo!} // Usamos ! porque asumimos que el dashboard no se renderiza sin esto
+          onUpdateEstablishmentInfo={handleUpdateEstablishmentInfo}
+          // Pasa el resto de props y handlers necesarios...
+          suppliers={suppliers}
+          onAddSupplier={() => {}}
+          onDeleteSupplier={() => {}}
+          productTypes={productTypes}
+          onAddProductType={() => {}}
+          onDeleteProductType={() => {}}
+          storageUnits={storageUnits}
+          onAddStorageUnit={() => {}}
+          onDeleteStorageUnit={() => {}}
+          storageRecords={storageRecords}
+          onAddStorageRecord={() => {}}
+          onDeleteStorageRecord={() => {}}
+          dailySurfaces={dailySurfaces}
+          onAddDailySurface={() => {}}
+          onDeleteDailySurface={() => {}}
+          dailyCleaningRecords={dailyCleaningRecords}
+          onAddDailyCleaningRecord={() => {}}
+          onDeleteDailyCleaningRecord={() => {}}
+          frequentAreas={frequentAreas}
+          onAddFrequentArea={() => {}}
+          onDeleteFrequentArea={() => {}}
+          onCleanFrequentArea={() => {}}
+          costings={costings}
+          onSetCostings={setCostings}
+          outgoingRecords={outgoingRecords}
+          onAddOutgoingRecord={() => {}}
+          onDeleteOutgoingRecord={() => {}}
+          elaboratedRecords={elaboratedRecords}
+          onAddElaboratedRecord={() => {}}
+          onDeleteElaboratedRecord={() => {}}
+          technicalSheets={technicalSheets}
+          onAddTechnicalSheet={() => {}}
+          onDeleteTechnicalSheet={() => {}}
+        />
+      )}
+    </>
+  );
+};
+
+const App: React.FC = () => {
+  return (
+    <NotificationProvider>
+      <NotificationContainer />
+      <AppContent />
+    </NotificationProvider>
   );
 };
 

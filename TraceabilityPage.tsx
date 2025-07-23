@@ -2,6 +2,7 @@
 import React, { useState, useMemo } from 'react';
 import { exportToPDF, exportToExcel } from './exportUtils';
 import { User, OutgoingRecord, ElaboratedRecord, EstablishmentInfo } from './App';
+import { useNotifications } from './NotificationContext';
 
 // --- Estados de Formulario ---
 type OutgoingFormState = {
@@ -47,6 +48,7 @@ const TraceabilityPage: React.FC<TraceabilityPageProps> = ({
     onAddOutgoingRecord, onDeleteOutgoing, onAddElaboratedRecord, onDeleteElaborated,
     establishmentInfo
 }) => {
+    const { warning } = useNotifications();
     const usersMap = useMemo(() => new Map(users.map(u => [u.id, u.name])), [users]);
 
     // Estados colapsables
@@ -96,7 +98,7 @@ const TraceabilityPage: React.FC<TraceabilityPageProps> = ({
     const handleOutgoingSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if(!outgoingForm.productName || !outgoingForm.quantity || !outgoingForm.lotIdentifier || !outgoingForm.destination || !outgoingForm.userId) {
-            alert('Por favor, complete todos los campos de salida.');
+            warning('Campos requeridos', 'Por favor, complete todos los campos de salida.');
             return;
         }
         onAddOutgoingRecord({
@@ -149,7 +151,7 @@ const TraceabilityPage: React.FC<TraceabilityPageProps> = ({
     const handleElaboratedSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (!elaboratedForm.productName || !elaboratedForm.productLot || elaboratedForm.ingredients.some(i => !i.name || !i.lot || !i.quantity)) {
-            alert('Por favor, complete al menos el nombre del producto, el lote y los detalles de los ingredientes.');
+            warning('Campos requeridos', 'Por favor, complete al menos el nombre del producto, el lote y los detalles de los ingredientes.');
             return;
         }
         onAddElaboratedRecord({

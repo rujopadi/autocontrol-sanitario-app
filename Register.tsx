@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { User } from './App';
+import { useNotifications } from './NotificationContext';
 
 interface RegisterProps {
   onRegister: (details: Omit<User, 'id'>) => void;
@@ -10,11 +11,12 @@ const Register: React.FC<RegisterProps> = ({ onRegister, onSwitchToLogin }) => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const { warning } = useNotifications();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim() || !email.trim() || !password.trim()) {
-        alert('Por favor, complete todos los campos.');
+        warning('Campos requeridos', 'Por favor, complete todos los campos.');
         return;
     }
     onRegister({ name: name.trim(), email: email.trim(), password });

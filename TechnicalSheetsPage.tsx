@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
 import { TechnicalSheet } from './App';
+import { useNotifications } from './NotificationContext';
 
 // --- Interfaces ---
 interface IngredientFormState {
@@ -19,6 +20,8 @@ interface TechnicalSheetsPageProps {
 
 // --- Component ---
 const TechnicalSheetsPage: React.FC<TechnicalSheetsPageProps> = ({ sheets, onAddSheet, onDeleteSheet }) => {
+    const { warning, success } = useNotifications();
+    
     // --- State ---
     const [isCreateFormOpen, setIsCreateFormOpen] = useState(true);
     const [expandedSheetId, setExpandedSheetId] = useState<string | null>(sheets.length > 0 ? sheets[0].id : null);
@@ -64,7 +67,7 @@ const TechnicalSheetsPage: React.FC<TechnicalSheetsPageProps> = ({ sheets, onAdd
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (!formState.productName.trim() || formState.ingredients.some(i => !i.name.trim() || !i.lot.trim())) {
-            alert('Por favor, complete la denominación y todos los campos de los ingredientes.');
+            warning('Campos requeridos', 'Por favor, complete la denominación y todos los campos de los ingredientes.');
             return;
         }
 
@@ -80,6 +83,7 @@ const TechnicalSheetsPage: React.FC<TechnicalSheetsPageProps> = ({ sheets, onAdd
         // setExpandedSheetId(Date.now()); // A bit of a hack to ensure the new one might be visible, but IDs change.
         setFormState(initialFormState); // Reset form
         setIsCreateFormOpen(false);
+        success('Ficha técnica creada', `La ficha técnica de "${formState.productName}" se ha creado correctamente.`);
     };
 
     const handleDeleteSheet = (id: string) => {

@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
 import { User } from './App';
+import { useNotifications } from './NotificationContext';
 
 interface UsersPageProps {
   users: User[];
@@ -10,6 +11,7 @@ interface UsersPageProps {
 }
 
 const UsersPage: React.FC<UsersPageProps> = ({ users, onAddUser, onDeleteUser, onUpdateUser }) => {
+  const { warning, success } = useNotifications();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -25,7 +27,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ users, onAddUser, onDeleteUser, o
   const handleAddUser = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim() || !email.trim() || !password.trim()) {
-      alert('Todos los campos son obligatorios.');
+      warning('Campos requeridos', 'Todos los campos son obligatorios.');
       return;
     }
     onAddUser({ name: name.trim(), email: email.trim(), password });
@@ -33,6 +35,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ users, onAddUser, onDeleteUser, o
     setName('');
     setEmail('');
     setPassword('');
+    success('Usuario creado', `El usuario ${name.trim()} se ha creado correctamente.`);
   };
 
   const handleDeleteUser = (userId: string) => {
@@ -60,8 +63,9 @@ const UsersPage: React.FC<UsersPageProps> = ({ users, onAddUser, onDeleteUser, o
     if (editingUser && editFormState.name.trim() && editFormState.email.trim()) {
       onUpdateUser(editingUser.id, editFormState);
       handleCancelEdit();
+      success('Usuario actualizado', `Los datos de ${editFormState.name} se han actualizado correctamente.`);
     } else {
-      alert('El nombre y el correo no pueden estar vacíos.');
+      warning('Campos requeridos', 'El nombre y el correo no pueden estar vacíos.');
     }
   };
 

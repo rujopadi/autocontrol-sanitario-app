@@ -10,13 +10,17 @@ import { EstablishmentInfo } from './App'; // Importar interfaz
  * @param data - Un array de arrays, donde cada array interno es una fila.
  * @param fileName - El nombre del archivo a guardar (sin extensión).
  * @param establishmentInfo - Objeto con los detalles del establecimiento para añadir a la cabecera.
+ * @param onSuccess - Callback para notificación de éxito.
+ * @param onError - Callback para notificación de error.
  */
 export const exportToPDF = (
   title: string, 
   headers: string[], 
   data: (string | number)[][], 
   fileName: string,
-  establishmentInfo: EstablishmentInfo
+  establishmentInfo: EstablishmentInfo,
+  onSuccess?: (message: string) => void,
+  onError?: (message: string) => void
 ) => {
   try {
     const doc = new jsPDF({
@@ -70,9 +74,10 @@ export const exportToPDF = (
     });
 
     doc.save(`${fileName}_${new Date().toISOString().slice(0,10)}.pdf`);
+    onSuccess?.(`PDF "${fileName}" generado correctamente.`);
   } catch (error) {
     console.error("Error exporting to PDF:", error);
-    alert("Hubo un error al generar el PDF. Por favor, revise la consola para más detalles.");
+    onError?.("Hubo un error al generar el PDF. Por favor, revise la consola para más detalles.");
   }
 };
 
@@ -81,11 +86,18 @@ export const exportToPDF = (
  * Exporta un array de objetos a un archivo Excel.
  * @param data - Array de objetos a exportar. Cada objeto es una fila.
  * @param fileName - El nombre del archivo a guardar (sin extensión).
+ * @param onSuccess - Callback para notificación de éxito.
+ * @param onError - Callback para notificación de error.
  */
-export const exportToExcel = (data: any[], fileName: string) => {
+export const exportToExcel = (
+    data: any[], 
+    fileName: string,
+    onSuccess?: (message: string) => void,
+    onError?: (message: string) => void
+) => {
     try {
         if (data.length === 0) {
-            alert("No hay datos para exportar.");
+            onError?.("No hay datos para exportar.");
             return;
         }
         const worksheet = XLSX.utils.json_to_sheet(data);
@@ -103,8 +115,9 @@ export const exportToExcel = (data: any[], fileName: string) => {
         worksheet["!cols"] = colWidths;
 
         XLSX.writeFile(workbook, `${fileName}_${new Date().toISOString().slice(0,10)}.xlsx`);
+        onSuccess?.(`Excel "${fileName}" generado correctamente.`);
     } catch (error) {
         console.error("Error exporting to Excel:", error);
-        alert("Hubo un error al generar el archivo Excel. Por favor, revise la consola para más detalles.");
+        onError?.("Hubo un error al generar el archivo Excel. Por favor, revise la consola para más detalles.");
     }
 };

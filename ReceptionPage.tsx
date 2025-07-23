@@ -2,6 +2,7 @@
 import React, { useState, useMemo } from 'react';
 import { exportToPDF, exportToExcel } from './exportUtils';
 import { User, Supplier, ProductType, DeliveryRecord, EstablishmentInfo } from './App';
+import { useNotifications } from './NotificationContext';
 
 interface ReceptionPageProps {
     users: User[];
@@ -22,6 +23,7 @@ const ReceptionPage: React.FC<ReceptionPageProps> = ({
     users, suppliers, productTypes, records,
     onAddSupplier, onDeleteSupplier, onAddProductType, onDeleteProductType, onAddRecord, onDeleteRecord, establishmentInfo
 }) => {
+    const { warning, success } = useNotifications();
     // UI State
     const [viewingImage, setViewingImage] = useState<string | null>(null);
     const [isReceptionFormOpen, setIsReceptionFormOpen] = useState(true);
@@ -65,9 +67,13 @@ const ReceptionPage: React.FC<ReceptionPageProps> = ({
     // Handlers: Supplier
     const handleAddSupplier = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!newSupplierName.trim()) { alert('El nombre del proveedor no puede estar vacío.'); return; }
+        if (!newSupplierName.trim()) { 
+            warning('Campo requerido', 'El nombre del proveedor no puede estar vacío.'); 
+            return; 
+        }
         onAddSupplier(newSupplierName.trim());
         setNewSupplierName('');
+        success('Proveedor añadido', `El proveedor "${newSupplierName.trim()}" se ha añadido correctamente.`);
     };
     const handleDeleteSupplier = (id: string) => {
         if (window.confirm('¿Eliminar proveedor? Sus registros asociados no se eliminarán pero el nombre aparecerá como "N/A".')) {
@@ -78,10 +84,14 @@ const ReceptionPage: React.FC<ReceptionPageProps> = ({
     // Handlers: Product Type
     const handleAddProductType = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!newProductName.trim() || !newProductTemp.trim()) { alert('Complete todos los campos del tipo de producto.'); return; }
+        if (!newProductName.trim() || !newProductTemp.trim()) { 
+            warning('Campos requeridos', 'Complete todos los campos del tipo de producto.'); 
+            return; 
+        }
         onAddProductType(newProductName.trim(), parseFloat(newProductTemp));
         setNewProductName('');
         setNewProductTemp('');
+        success('Tipo de producto añadido', `El tipo "${newProductName.trim()}" se ha añadido correctamente.`);
     };
     const handleDeleteProductType = (id: string) => {
          if (window.confirm('¿Eliminar tipo de producto? Sus registros asociados no se eliminarán pero el nombre aparecerá como "N/A".')) {
@@ -93,7 +103,8 @@ const ReceptionPage: React.FC<ReceptionPageProps> = ({
     const handleAddRecord = (e: React.FormEvent) => {
         e.preventDefault();
         if (!recordSupplier || !recordProductType || !recordTemp.trim()) {
-            alert('Por favor, complete todos los campos del registro.'); return;
+            warning('Campos requeridos', 'Por favor, complete todos los campos del registro.'); 
+            return;
         }
         onAddRecord({
             supplierId: recordSupplier,

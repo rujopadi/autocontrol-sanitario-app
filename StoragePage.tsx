@@ -2,6 +2,7 @@
 import React, { useState, useMemo } from 'react';
 import { exportToPDF, exportToExcel } from './exportUtils';
 import { User, StorageUnit, StorageRecord, EstablishmentInfo } from './App';
+import { useNotifications } from './NotificationContext';
 
 
 interface StoragePageProps {
@@ -17,6 +18,8 @@ interface StoragePageProps {
 
 
 const StoragePage: React.FC<StoragePageProps> = ({ users, units, records, onAddUnit, onDeleteUnit, onAddRecord, onDeleteRecord, establishmentInfo }) => {
+    const { warning, success } = useNotifications();
+    
     // Collapsible sections state
     const [isRecordFormOpen, setIsRecordFormOpen] = useState(true);
     const [isUnitManagementOpen, setIsUnitManagementOpen] = useState(false);
@@ -61,7 +64,7 @@ const StoragePage: React.FC<StoragePageProps> = ({ users, units, records, onAddU
     const handleAddUnit = (e: React.FormEvent) => {
         e.preventDefault();
         if (!newUnitName.trim()) {
-            alert('El nombre de la cámara no puede estar vacío.');
+            warning('Campo requerido', 'El nombre de la cámara no puede estar vacío.');
             return;
         }
         onAddUnit({
@@ -73,6 +76,7 @@ const StoragePage: React.FC<StoragePageProps> = ({ users, units, records, onAddU
         setNewUnitName('');
         setNewUnitMinTemp('');
         setNewUnitMaxTemp('');
+        success('Cámara añadida', `La cámara "${newUnitName.trim()}" se ha añadido correctamente.`);
     };
 
     const handleDeleteUnit = (unitId: string) => {
@@ -84,11 +88,11 @@ const StoragePage: React.FC<StoragePageProps> = ({ users, units, records, onAddU
     const handleAddRecord = (e: React.FormEvent) => {
         e.preventDefault();
         if (!recordUnit || !recordTemp.trim()) {
-            alert('Por favor, complete todos los campos del registro.');
+            warning('Campos requeridos', 'Por favor, complete todos los campos del registro.');
             return;
         }
         if (selectedUnitForRecord?.type === 'Cámara de secado' && !recordHumidity.trim()){
-            alert('Por favor, introduzca el valor de la humedad para la cámara de secado.');
+            warning('Campo requerido', 'Por favor, introduzca el valor de la humedad para la cámara de secado.');
             return;
         }
         onAddRecord({

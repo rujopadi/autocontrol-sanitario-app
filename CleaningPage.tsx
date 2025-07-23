@@ -2,6 +2,7 @@
 import React, { useState, useMemo } from 'react';
 import { exportToPDF, exportToExcel } from './exportUtils';
 import { User, DailySurface, DailyCleaningRecord, FrequentArea, EstablishmentInfo } from './App';
+import { useNotifications } from './NotificationContext';
 
 interface CleaningPageProps {
     users: User[];
@@ -33,6 +34,7 @@ const CleaningPage: React.FC<CleaningPageProps> = ({
     onAddSurface, onDeleteSurface, onCleanSurface, onDeleteRecord,
     onAddArea, onDeleteArea, onCleanArea, establishmentInfo
 }) => {
+    const { warning, success } = useNotifications();
     // Estado de formularios y UI
     const [newSurfaceName, setNewSurfaceName] = useState('');
     const [cleaningUser, setCleaningUser] = useState<string>(users.length > 0 ? String(users[0].id) : '');
@@ -63,9 +65,13 @@ const CleaningPage: React.FC<CleaningPageProps> = ({
     // Handlers: Limpieza Diaria
     const handleAddSurface = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!newSurfaceName.trim()) { alert('El nombre de la superficie no puede estar vacío.'); return; }
+        if (!newSurfaceName.trim()) { 
+            warning('Campo requerido', 'El nombre de la superficie no puede estar vacío.'); 
+            return; 
+        }
         onAddSurface(newSurfaceName.trim());
         setNewSurfaceName('');
+        success('Superficie añadida', `La superficie "${newSurfaceName.trim()}" se ha añadido correctamente.`);
     };
 
     const handleDeleteSurface = (id: string) => {
@@ -76,7 +82,7 @@ const CleaningPage: React.FC<CleaningPageProps> = ({
 
     const handleCleanSurface = (surfaceId: string) => {
         if (!cleaningUser) {
-            alert('Por favor, seleccione un usuario antes de registrar una limpieza.');
+            warning('Usuario requerido', 'Por favor, seleccione un usuario antes de registrar una limpieza.');
             return;
         }
         onCleanSurface({
@@ -84,7 +90,7 @@ const CleaningPage: React.FC<CleaningPageProps> = ({
             dateTime: new Date().toISOString(),
             userId: cleaningUser,
         });
-        alert(`Limpieza de "${surfacesMap.get(surfaceId)}" registrada.`);
+        success('Limpieza registrada', `Limpieza de "${surfacesMap.get(surfaceId)}" registrada correctamente.`);
     };
     
     const handleDeleteRecord = (id: string) => {
@@ -96,7 +102,10 @@ const CleaningPage: React.FC<CleaningPageProps> = ({
     // Handlers: Limpieza Frecuente
     const handleAddArea = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!newAreaName.trim() || !newAreaFrequency.trim() || parseInt(newAreaFrequency) < 1) { alert('Por favor, complete todos los campos con valores válidos.'); return; }
+        if (!newAreaName.trim() || !newAreaFrequency.trim() || parseInt(newAreaFrequency) < 1) { 
+            warning('Campos requeridos', 'Por favor, complete todos los campos con valores válidos.'); 
+            return; 
+        }
         onAddArea({
             name: newAreaName.trim(),
             frequencyDays: parseInt(newAreaFrequency, 10),
@@ -104,6 +113,7 @@ const CleaningPage: React.FC<CleaningPageProps> = ({
         });
         setNewAreaName('');
         setNewAreaFrequency('');
+        success('Zona añadida', `La zona "${newAreaName.trim()}" se ha añadido correctamente.`);
     };
     
     const handleDeleteArea = (id: string) => {
@@ -114,7 +124,7 @@ const CleaningPage: React.FC<CleaningPageProps> = ({
 
     const handleCleanArea = (areaId: string) => {
         onCleanArea(areaId);
-        alert(`Limpieza de "${areas.find(a=>a.id === areaId)?.name}" registrada.`);
+        success('Limpieza registrada', `Limpieza de "${areas.find(a=>a.id === areaId)?.name}" registrada correctamente.`);
     };
 
     // Handlers: Exportación

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNotifications } from './NotificationContext';
 
 interface LoginProps {
   onLoginSuccess: (credentials: { email: string, password: string }) => void;
@@ -8,11 +9,12 @@ interface LoginProps {
 const Login: React.FC<LoginProps> = ({ onLoginSuccess, onSwitchToRegister }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const { warning } = useNotifications();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim() || !password.trim()) {
-      alert('Por favor, introduzca su correo y contraseña.');
+      warning('Campos requeridos', 'Por favor, introduzca su correo y contraseña.');
       return;
     }
     onLoginSuccess({ email, password });
