@@ -39,7 +39,7 @@ export interface TechnicalSheet { id: string; productName: string; ingredients: 
 export interface Ingredient { id: string; name: string; lot: string; isAllergen: boolean; }
 
 // Se leerá desde las variables de entorno que configuraremos en Dokploy
-const API_URL = import.meta.env.VITE_API_URL || 'https://autocontrolsanitarioapp-backend-5plj5f-f5ea1c-31-97-193-114.traefik.me';
+const API_URL = import.meta.env.VITE_API_URL || '';
 
 const AppContent: React.FC = () => {
   const { success, error } = useNotifications();
@@ -73,9 +73,7 @@ const AppContent: React.FC = () => {
           ...options.headers,
       };
       
-      // Usar HTTPS para evitar Mixed Content
-      const apiUrl = API_URL.replace('http://', 'https://');
-      const response = await fetch(`${apiUrl}${url}`, { ...options, headers });
+      const response = await fetch(`${API_URL}${url}`, { ...options, headers });
       
       if (response.status === 401) {
           // Token inválido o expirado
@@ -146,8 +144,7 @@ const AppContent: React.FC = () => {
 
   const handleLogin = async (credentials: { email: string, password: string }) => {
     try {
-        const apiUrl = API_URL.replace('http://', 'https://');
-        const response = await fetch(`${apiUrl}/api/auth/login`, {
+        const response = await fetch(`${API_URL}/api/auth/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(credentials)
@@ -165,8 +162,7 @@ const AppContent: React.FC = () => {
 
   const handleRegister = async (details: Omit<User, 'id'>) => {
     try {
-        const apiUrl = API_URL.replace('http://', 'https://');
-        const response = await fetch(`${apiUrl}/api/auth/register`, {
+        const response = await fetch(`${API_URL}/api/auth/register`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(details)
