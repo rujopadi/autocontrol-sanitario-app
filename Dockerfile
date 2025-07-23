@@ -27,19 +27,28 @@ RUN rm -rf /usr/share/nginx/html/*
 # Copiar archivos del build
 COPY --from=build /app/dist /usr/share/nginx/html
 
-# Verificar copia
-RUN echo "=== CONTENIDO DE NGINX ===" && ls -la /usr/share/nginx/html/ && echo "=== FIN NGINX ==="
+# Verificar copia (con timestamp para evitar cache)
+RUN echo "=== CONTENIDO DE NGINX $(date) ===" && ls -la /usr/share/nginx/html/ && echo "=== FIN NGINX ==="
 
 # Configuración básica de Nginx
 RUN echo 'server { \
     listen 80; \
     server_name localhost; \
     root /usr/share/nginx/html; \
-    index index.html; \
+    index index.html index.htm; \
+    error_log /var/log/nginx/error.log; \
+    access_log /var/log/nginx/access.log; \
     location / { \
         try_files $uri $uri/ /index.html; \
     } \
+    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg)$ { \
+        expires 1y; \
+        add_header Cache-Control "public, immutable"; \
+    } \
 }' > /etc/nginx/conf.d/default.conf
+
+# Verificar configuración de Nginx
+RUN nginx -t
 
 EXPOSE 80
 
