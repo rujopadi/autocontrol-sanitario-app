@@ -1,38 +1,46 @@
-# Dockerfile para la aplicación React
+# Dockerfile simplificado para la aplicación React
 FROM node:18-alpine as build
 
-# Establecer directorio de trabajo
 WORKDIR /app
 
-# Copiar archivos de dependencias
+# Copiar package files
 COPY package*.json ./
 
-# Instalar TODAS las dependencias (incluyendo devDependencies para el build)
+# Instalar dependencias
 RUN npm ci
 
 # Copiar código fuente
 COPY . .
 
-# Construir la aplicación
+# Build de la aplicación
 RUN npm run build
 
-# Verificar que el build se creó correctamente
-RUN ls -la /app/dist/
+# Verificar build
+RUN echo "=== CONTENIDO DE DIST ===" && ls -la /app/dist/ && echo "=== FIN DIST ==="
 
-# Etapa de producción con Nginx
+# Etapa de producción
 FROM nginx:alpine
 
-# Copiar archivos construidos
+# Limpiar directorio por defecto
+RUN rm -rf /usr/share/nginx/html/*
+
+# Copiar archivos del build
 COPY --from=build /app/dist /usr/share/nginx/html
 
-# Verificar que los archivos se copiaron
-RUN ls -la /usr/share/nginx/html/
+# Verificar copia
+RUN echo "=== CONTENIDO DE NGINX ===" && ls -la /usr/share/nginx/html/ && echo "=== FIN NGINX ==="
 
-# Copiar configuración personalizada de Nginx
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Configuración básica de Nginx
+RUN echo 'server { \
+    listen 80; \
+    server_name localhost; \
+    root /usr/share/nginx/html; \
+    index index.html; \
+    location / { \
+        try_files $uri $uri/ /index.html; \
+    } \
+}' > /etc/nginx/conf.d/default.conf
 
-# Exponer puerto
 EXPOSE 80
 
-# Comando por defecto
 CMD ["nginx", "-g", "daemon off;"]
