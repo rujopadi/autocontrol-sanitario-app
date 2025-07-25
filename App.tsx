@@ -60,13 +60,13 @@ const AppContent: React.FC = () => {
   const [establishmentInfo, setEstablishmentInfo] = useState<EstablishmentInfo | null>(null);
   const [deliveryRecords, setDeliveryRecords] = useState<DeliveryRecord[]>([]);
   // ... resto de estados
-  const [suppliers] = useState<Supplier[]>([]);
-  const [productTypes] = useState<ProductType[]>([]);
-  const [storageUnits] = useState<StorageUnit[]>([]);
-  const [storageRecords] = useState<StorageRecord[]>([]);
-  const [dailySurfaces] = useState<DailySurface[]>([]);
-  const [dailyCleaningRecords] = useState<DailyCleaningRecord[]>([]);
-  const [frequentAreas] = useState<FrequentArea[]>([]);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [productTypes, setProductTypes] = useState<ProductType[]>([]);
+  const [storageUnits, setStorageUnits] = useState<StorageUnit[]>([]);
+  const [storageRecords, setStorageRecords] = useState<StorageRecord[]>([]);
+  const [dailySurfaces, setDailySurfaces] = useState<DailySurface[]>([]);
+  const [dailyCleaningRecords, setDailyCleaningRecords] = useState<DailyCleaningRecord[]>([]);
+  const [frequentAreas, setFrequentAreas] = useState<FrequentArea[]>([]);
   const [costings, setCostings] = useState<Costing[]>([]);
   const [outgoingRecords] = useState<OutgoingRecord[]>([]);
   const [elaboratedRecords] = useState<ElaboratedRecord[]>([]);
@@ -276,6 +276,123 @@ const AppContent: React.FC = () => {
       }
   };
 
+  // Handlers para Suppliers
+  const handleAddSupplier = (name: string) => {
+    const newSupplier: Supplier = {
+      id: Date.now().toString(),
+      name: name.trim()
+    };
+    setSuppliers(prev => [...prev, newSupplier]);
+    success('Proveedor añadido', `${name} se ha añadido correctamente.`);
+  };
+
+  const handleDeleteSupplier = (id: string) => {
+    setSuppliers(prev => prev.filter(s => s.id !== id));
+    success('Proveedor eliminado', 'El proveedor se ha eliminado correctamente.');
+  };
+
+  // Handlers para Product Types
+  const handleAddProductType = (name: string, optimalTemp: number) => {
+    const newProductType: ProductType = {
+      id: Date.now().toString(),
+      name: name.trim(),
+      optimalTemp
+    };
+    setProductTypes(prev => [...prev, newProductType]);
+    success('Tipo de producto añadido', `${name} se ha añadido correctamente.`);
+  };
+
+  const handleDeleteProductType = (id: string) => {
+    setProductTypes(prev => prev.filter(p => p.id !== id));
+    success('Tipo de producto eliminado', 'El tipo de producto se ha eliminado correctamente.');
+  };
+
+  // Handlers para Storage Units
+  const handleAddStorageUnit = (unit: Omit<StorageUnit, 'id'>) => {
+    const newStorageUnit: StorageUnit = {
+      id: Date.now().toString(),
+      ...unit
+    };
+    setStorageUnits(prev => [...prev, newStorageUnit]);
+    success('Unidad de almacenamiento añadida', `${unit.name} se ha añadido correctamente.`);
+  };
+
+  const handleDeleteStorageUnit = (id: string) => {
+    setStorageUnits(prev => prev.filter(u => u.id !== id));
+    success('Unidad eliminada', 'La unidad de almacenamiento se ha eliminado correctamente.');
+  };
+
+  // Handlers para Storage Records
+  const handleAddStorageRecord = (record: Omit<StorageRecord, 'id' | 'userId'>) => {
+    const newRecord: StorageRecord = {
+      id: Date.now().toString(),
+      userId: currentUser?.id || '',
+      ...record
+    };
+    setStorageRecords(prev => [newRecord, ...prev]);
+    success('Registro añadido', 'El registro de almacenamiento se ha guardado correctamente.');
+  };
+
+  const handleDeleteStorageRecord = (id: string) => {
+    setStorageRecords(prev => prev.filter(r => r.id !== id));
+    success('Registro eliminado', 'El registro se ha eliminado correctamente.');
+  };
+
+  // Handlers para Daily Surfaces
+  const handleAddDailySurface = (name: string) => {
+    const newSurface: DailySurface = {
+      id: Date.now().toString(),
+      name: name.trim()
+    };
+    setDailySurfaces(prev => [...prev, newSurface]);
+    success('Superficie añadida', `${name} se ha añadido correctamente.`);
+  };
+
+  const handleDeleteDailySurface = (id: string) => {
+    setDailySurfaces(prev => prev.filter(s => s.id !== id));
+    success('Superficie eliminada', 'La superficie se ha eliminado correctamente.');
+  };
+
+  // Handlers para Daily Cleaning Records
+  const handleAddDailyCleaningRecord = (record: Omit<DailyCleaningRecord, 'id' | 'userId'>) => {
+    const newRecord: DailyCleaningRecord = {
+      id: Date.now().toString(),
+      userId: currentUser?.id || '',
+      ...record
+    };
+    setDailyCleaningRecords(prev => [newRecord, ...prev]);
+    success('Registro de limpieza añadido', 'El registro se ha guardado correctamente.');
+  };
+
+  const handleDeleteDailyCleaningRecord = (id: string) => {
+    setDailyCleaningRecords(prev => prev.filter(r => r.id !== id));
+    success('Registro eliminado', 'El registro se ha eliminado correctamente.');
+  };
+
+  // Handlers para Frequent Areas
+  const handleAddFrequentArea = (area: Omit<FrequentArea, 'id'>) => {
+    const newArea: FrequentArea = {
+      id: Date.now().toString(),
+      ...area
+    };
+    setFrequentAreas(prev => [...prev, newArea]);
+    success('Área añadida', `${area.name} se ha añadido correctamente.`);
+  };
+
+  const handleDeleteFrequentArea = (id: string) => {
+    setFrequentAreas(prev => prev.filter(a => a.id !== id));
+    success('Área eliminada', 'El área se ha eliminado correctamente.');
+  };
+
+  const handleCleanFrequentArea = (id: string) => {
+    setFrequentAreas(prev => prev.map(area => 
+      area.id === id 
+        ? { ...area, lastCleaned: new Date().toISOString() }
+        : area
+    ));
+    success('Limpieza registrada', 'Se ha registrado la limpieza del área.');
+  };
+
   if (isLoading) {
       return <div className="login-container"><h1>Cargando...</h1></div>;
   }
@@ -314,27 +431,27 @@ const AppContent: React.FC = () => {
           onUpdateEstablishmentInfo={handleUpdateEstablishmentInfo}
           // Pasa el resto de props y handlers necesarios...
           suppliers={suppliers}
-          onAddSupplier={() => {}}
-          onDeleteSupplier={() => {}}
+          onAddSupplier={handleAddSupplier}
+          onDeleteSupplier={handleDeleteSupplier}
           productTypes={productTypes}
-          onAddProductType={() => {}}
-          onDeleteProductType={() => {}}
+          onAddProductType={handleAddProductType}
+          onDeleteProductType={handleDeleteProductType}
           storageUnits={storageUnits}
-          onAddStorageUnit={() => {}}
-          onDeleteStorageUnit={() => {}}
+          onAddStorageUnit={handleAddStorageUnit}
+          onDeleteStorageUnit={handleDeleteStorageUnit}
           storageRecords={storageRecords}
-          onAddStorageRecord={() => {}}
-          onDeleteStorageRecord={() => {}}
+          onAddStorageRecord={handleAddStorageRecord}
+          onDeleteStorageRecord={handleDeleteStorageRecord}
           dailySurfaces={dailySurfaces}
-          onAddDailySurface={() => {}}
-          onDeleteDailySurface={() => {}}
+          onAddDailySurface={handleAddDailySurface}
+          onDeleteDailySurface={handleDeleteDailySurface}
           dailyCleaningRecords={dailyCleaningRecords}
-          onAddDailyCleaningRecord={() => {}}
-          onDeleteDailyCleaningRecord={() => {}}
+          onAddDailyCleaningRecord={handleAddDailyCleaningRecord}
+          onDeleteDailyCleaningRecord={handleDeleteDailyCleaningRecord}
           frequentAreas={frequentAreas}
-          onAddFrequentArea={() => {}}
-          onDeleteFrequentArea={() => {}}
-          onCleanFrequentArea={() => {}}
+          onAddFrequentArea={handleAddFrequentArea}
+          onDeleteFrequentArea={handleDeleteFrequentArea}
+          onCleanFrequentArea={handleCleanFrequentArea}
           costings={costings}
           onSetCostings={setCostings}
           outgoingRecords={outgoingRecords}
