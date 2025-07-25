@@ -115,22 +115,44 @@ const ReceptionPage: React.FC<ReceptionPageProps> = ({
     // Handlers: Record
     const handleAddRecord = (e: React.FormEvent) => {
         e.preventDefault();
+        
+        // Debug logging
+        console.log('🔍 Validando campos:', {
+            recordSupplier,
+            recordProductType,
+            recordTemp: recordTemp.trim(),
+            recordDate,
+            recordDocs,
+            hasImage: !!recordAlbaranImage
+        });
+        
         if (!recordSupplier || !recordProductType || !recordTemp.trim()) {
             warning('Campos requeridos', 'Por favor, complete todos los campos del registro.'); 
             return;
         }
-        onAddRecord({
+        
+        const recordData = {
             supplierId: recordSupplier,
             productTypeId: recordProductType,
             temperature: recordTemp,
             receptionDate: recordDate,
             docsOk: recordDocs,
             albaranImage: recordAlbaranImage || undefined,
-        });
-        // Reset part of the form
-        setRecordTemp('');
-        setRecordDocs(true);
-        setRecordAlbaranImage(null);
+        };
+        
+        console.log('📝 Enviando registro:', recordData);
+        
+        try {
+            onAddRecord(recordData);
+            // Reset part of the form
+            setRecordTemp('');
+            setRecordDocs(true);
+            setRecordAlbaranImage(null);
+            success('Registro guardado', 'El registro de recepción se ha guardado correctamente.');
+        } catch (error) {
+            console.error('❌ Error al guardar:', error);
+            warning('Error', 'No se pudo guardar el registro.');
+        }
     };
 
     const handleDeleteRecord = (id: string) => {
@@ -142,9 +164,28 @@ const ReceptionPage: React.FC<ReceptionPageProps> = ({
     const handleImageCapture = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
+            // Verificar tamaño del archivo (máximo 5MB)
+            if (file.size > 5 * 1024 * 1024) {
+                warning('Archivo muy grande', 'La imagen debe ser menor a 5MB.');
+                return;
+            }
+            
+            console.log('📷 Procesando imagen:', {
+                name: file.name,
+                size: file.size,
+                type: file.type
+            });
+            
             const reader = new FileReader();
             reader.onloadend = () => {
-                setRecordAlbaranImage(reader.result as string);
+                const result = reader.result as string;
+                console.log('✅ Imagen procesada, tamaño:', result.length);
+                setRecordAlbaranImage(result);
+                success('Imagen capturada', 'La foto del albarán se ha capturado correctamente.');
+            };
+            reader.onerror = () => {
+                console.error('❌ Error al leer imagen');
+                warning('Error', 'No se pudo procesar la imagen.');
             };
             reader.readAsDataURL(file);
         }
