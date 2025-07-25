@@ -5,6 +5,7 @@ import Register from './Register';
 import Dashboard from './Dashboard';
 import ForgotPassword from './ForgotPassword';
 import ResetPassword from './ResetPassword';
+import Footer from './Footer';
 import { NotificationProvider, useNotifications } from './NotificationContext';
 import NotificationContainer from './NotificationContainer';
 
@@ -357,6 +358,7 @@ const App: React.FC = () => {
     <NotificationProvider>
       <NotificationContainer />
       <AppContent />
+      <Footer />
     </NotificationProvider>
   );
 };
