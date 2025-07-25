@@ -195,16 +195,28 @@ const AppContent: React.FC = () => {
   };
   
   const handleAddDeliveryRecord = async (record: Omit<DeliveryRecord, 'id' | 'userId'>) => {
+    console.log('📤 Enviando registro al backend:', {
+      ...record,
+      albaranImage: record.albaranImage ? `[Imagen de ${record.albaranImage.length} caracteres]` : 'Sin imagen'
+    });
+    
     try {
         const response = await apiFetch(`/api/records/delivery`, {
             method: 'POST',
             body: JSON.stringify(record)
         });
         const newRecord = await response.json();
+        
+        console.log('📥 Respuesta del backend:', {
+          ...newRecord,
+          albaranImage: newRecord.albaranImage ? `[Imagen de ${newRecord.albaranImage.length} caracteres]` : 'Sin imagen'
+        });
+        
          if (!response.ok) throw new Error(newRecord.message || 'Error al guardar el registro.');
         setDeliveryRecords(prev => [newRecord, ...prev]);
         success('Registro añadido', 'El registro de recepción se ha guardado correctamente.');
     } catch (error: any) {
+        console.error('❌ Error en handleAddDeliveryRecord:', error);
         error('Error al guardar', error.message);
     }
   };

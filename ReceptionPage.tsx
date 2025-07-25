@@ -442,6 +442,10 @@ const ReceptionPage: React.FC<ReceptionPageProps> = ({
                                                     <div className="detail-actions">
                                                         <strong>Acciones</strong>
                                                         <div>
+                                                            {/* Debug: mostrar estado de la imagen */}
+                                                            <div style={{fontSize: '0.8rem', color: '#666', marginBottom: '5px'}}>
+                                                                Imagen: {record.albaranImage ? 'SÍ' : 'NO'}
+                                                            </div>
                                                             {record.albaranImage && <button className="btn-view-photo" onClick={() => setViewingImage(record.albaranImage!)}>Ver Foto Albarán</button>}
                                                             <button className="btn-delete" onClick={() => handleDeleteRecord(record.id)}>Eliminar</button>
                                                         </div>
