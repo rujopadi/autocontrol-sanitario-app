@@ -30,6 +30,26 @@ body {
   background-color: var(--background-color);
   color: var(--text-color);
   line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+  body {
+    font-size: 14px;
+  }
+  
+  /* Prevent zoom on input focus in iOS */
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+  
+  /* Better touch targets */
+  button, a {
+    min-height: 44px;
+    min-width: 44px;
+  }
 }
 
 #root {
@@ -58,14 +78,50 @@ body {
   font-weight: 600;
 }
 
+/* Mobile Footer */
+@media (max-width: 768px) {
+  .app-footer {
+    padding: 10px 15px;
+  }
+  
+  .footer-text {
+    font-size: 0.8rem;
+  }
+}
+
 /* Login Screen */
 .login-container {
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 100%;
+  min-height: 100vh;
   background-color: var(--background-color);
   padding: 20px;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .login-container {
+    padding: 10px;
+    align-items: flex-start;
+    padding-top: 50px;
+  }
+  
+  .login-form {
+    width: 100% !important;
+    max-width: 400px;
+    padding: 20px !important;
+  }
+  
+  .form-group input {
+    font-size: 16px; /* Evita zoom en iOS */
+  }
+  
+  .btn-login {
+    width: 100%;
+    padding: 12px;
+    font-size: 16px;
+  }
 }
 
 .login-form {
