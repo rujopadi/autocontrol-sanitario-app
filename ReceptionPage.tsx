@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { exportToPDF, exportToExcel } from './exportUtils';
 import { User, Supplier, ProductType, DeliveryRecord, EstablishmentInfo } from './App';
 import { useNotifications } from './NotificationContext';
@@ -41,8 +41,8 @@ const ReceptionPage: React.FC<ReceptionPageProps> = ({
     const [newProductTemp, setNewProductTemp] = useState('');
     
     // Form state: New Record
-    const [recordSupplier, setRecordSupplier] = useState<string>(suppliers.length > 0 ? String(suppliers[0].id) : '');
-    const [recordProductType, setRecordProductType] = useState<string>(productTypes.length > 0 ? String(productTypes[0].id) : '');
+    const [recordSupplier, setRecordSupplier] = useState<string>('');
+    const [recordProductType, setRecordProductType] = useState<string>('');
     const [recordDate, setRecordDate] = useState(new Date().toISOString().slice(0, 10));
     const [recordTemp, setRecordTemp] = useState('');
     const [recordDocs, setRecordDocs] = useState(true);
@@ -63,6 +63,19 @@ const ReceptionPage: React.FC<ReceptionPageProps> = ({
             return true;
         }).sort((a, b) => new Date(b.receptionDate).getTime() - new Date(a.receptionDate).getTime());
     }, [records, startDate, endDate]);
+
+    // Update form values when suppliers/productTypes change
+    useEffect(() => {
+        if (suppliers.length > 0 && !recordSupplier) {
+            setRecordSupplier(suppliers[0].id);
+        }
+    }, [suppliers, recordSupplier]);
+
+    useEffect(() => {
+        if (productTypes.length > 0 && !recordProductType) {
+            setRecordProductType(productTypes[0].id);
+        }
+    }, [productTypes, recordProductType]);
 
     // Handlers: Supplier
     const handleAddSupplier = (e: React.FormEvent) => {

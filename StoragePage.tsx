@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { exportToPDF, exportToExcel } from './exportUtils';
 import { User, StorageUnit, StorageRecord, EstablishmentInfo } from './App';
 import { useNotifications } from './NotificationContext';
@@ -33,7 +33,7 @@ const StoragePage: React.FC<StoragePageProps> = ({ users, units, records, onAddU
 
 
     // Form state for new record
-    const [recordUnit, setRecordUnit] = useState<string>(units.length > 0 ? String(units[0].id) : '');
+    const [recordUnit, setRecordUnit] = useState<string>('');
     const [recordDateTime, setRecordDateTime] = useState(new Date().toISOString().slice(0, 16));
     const [recordTemp, setRecordTemp] = useState('');
     const [recordHumidity, setRecordHumidity] = useState('');
@@ -48,6 +48,13 @@ const StoragePage: React.FC<StoragePageProps> = ({ users, units, records, onAddU
     const unitsMap = useMemo(() => new Map(units.map(u => [u.id, u])), [units]);
     const usersMap = useMemo(() => new Map(users.map(u => [u.id, u.name])), [users]);
     const selectedUnitForRecord = useMemo(() => units.find(u => u.id === recordUnit), [units, recordUnit]);
+
+    // Update recordUnit when units change
+    useEffect(() => {
+        if (units.length > 0 && !recordUnit) {
+            setRecordUnit(units[0].id);
+        }
+    }, [units, recordUnit]);
 
     const filteredRecords = useMemo(() => {
         return records.filter(record => {
