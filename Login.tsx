@@ -63,6 +63,10 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onSwitchToRegister, onFor
             ¿No tiene cuenta? Cree una nueva
           </a>
         </div>
+        
+        <div className="login-footer">
+          <p>© {new Date().getFullYear()} Creado por <strong>Sibarilia, S.L.</strong></p>
+        </div>
       </form>
     </div>
   );

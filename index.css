@@ -38,6 +38,25 @@ body {
   flex-direction: column;
 }
 
+/* Login Footer */
+.login-footer {
+  margin-top: 20px;
+  padding-top: 15px;
+  border-top: 1px solid var(--border-color);
+  text-align: center;
+}
+
+.login-footer p {
+  font-size: 0.85rem;
+  color: #666;
+  margin: 0;
+}
+
+.login-footer strong {
+  color: var(--primary-color);
+  font-weight: 600;
+}
+
 
 
 /* Login Screen */

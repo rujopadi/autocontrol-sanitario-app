@@ -71,6 +71,10 @@ const Register: React.FC<RegisterProps> = ({ onRegister, onSwitchToLogin }) => {
             ¿Ya tiene una cuenta? Inicie sesión
           </a>
         </div>
+        
+        <div className="login-footer">
+          <p>© {new Date().getFullYear()} Creado por <strong>Sibarilia, S.L.</strong></p>
+        </div>
       </form>
     </div>
   );
