@@ -3,6 +3,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import Login from './Login';
 import Register from './Register';
 import Dashboard from './Dashboard';
+import ForgotPassword from './ForgotPassword';
+import ResetPassword from './ResetPassword';
 import { NotificationProvider, useNotifications } from './NotificationContext';
 import NotificationContainer from './NotificationContainer';
 
@@ -49,7 +51,8 @@ const AppContent: React.FC = () => {
   const { success, error } = useNotifications();
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
-  const [authView, setAuthView] = useState<'login' | 'register'>('login');
+  const [authView, setAuthView] = useState<'login' | 'register' | 'forgot-password' | 'reset-password'>('login');
+  const [resetToken, setResetToken] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
 
   // --- ESTADOS DE DATOS ---
@@ -281,10 +284,21 @@ const AppContent: React.FC = () => {
     <>
       {!currentUser ? (
         authView === 'login' ? (
-          <Login onLoginSuccess={handleLogin} onSwitchToRegister={() => setAuthView('register')} />
-        ) : (
+          <Login 
+            onLoginSuccess={handleLogin} 
+            onSwitchToRegister={() => setAuthView('register')}
+            onForgotPassword={() => setAuthView('forgot-password')}
+          />
+        ) : authView === 'register' ? (
           <Register onRegister={handleRegister} onSwitchToLogin={() => setAuthView('login')} />
-        )
+        ) : authView === 'forgot-password' ? (
+          <ForgotPassword onBackToLogin={() => setAuthView('login')} />
+        ) : authView === 'reset-password' ? (
+          <ResetPassword 
+            token={resetToken} 
+            onResetComplete={() => setAuthView('login')} 
+          />
+        ) : null
       ) : (
         <Dashboard
           currentUser={currentUser}

@@ -4,9 +4,10 @@ import { useNotifications } from './NotificationContext';
 interface LoginProps {
   onLoginSuccess: (credentials: { email: string, password: string }) => void;
   onSwitchToRegister: () => void;
+  onForgotPassword: () => void;
 }
 
-const Login: React.FC<LoginProps> = ({ onLoginSuccess, onSwitchToRegister }) => {
+const Login: React.FC<LoginProps> = ({ onLoginSuccess, onSwitchToRegister, onForgotPassword }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const { warning } = useNotifications();
@@ -51,7 +52,13 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onSwitchToRegister }) => 
         <button type="submit" className="btn-login">
           Iniciar Sesión
         </button>
-         <div className="auth-switch-link">
+        <div className="auth-switch-link">
+          <a href="#" onClick={(e) => { e.preventDefault(); onForgotPassword(); }}>
+            ¿Olvidaste tu contraseña?
+          </a>
+        </div>
+        
+        <div className="auth-switch-link">
           <a href="#" onClick={(e) => { e.preventDefault(); onSwitchToRegister(); }}>
             ¿No tiene cuenta? Cree una nueva
           </a>
