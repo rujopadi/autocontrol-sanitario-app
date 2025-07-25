@@ -44,13 +44,33 @@ body {
   margin-bottom: 30px;
 }
 
-.logo-image {
-  width: 120px;
-  height: auto;
+.logo-simple {
+  position: relative;
+  display: inline-block;
   margin-bottom: 15px;
+}
+
+.logo-icon {
+  font-size: 4rem;
+  color: var(--primary-color);
   display: block;
-  margin-left: auto;
-  margin-right: auto;
+}
+
+.logo-badge {
+  position: absolute;
+  bottom: -5px;
+  right: -5px;
+  background: var(--success-color);
+  color: white;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  border: 2px solid white;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
 }
 
 .login-logo h1 {
@@ -81,12 +101,46 @@ body {
 
 /* Responsive logo */
 @media (max-width: 768px) {
-  .logo-image {
-    width: 100px;
+  .login-container {
+    padding: 10px;
+    align-items: flex-start;
+    padding-top: 30px;
+  }
+  
+  .login-form {
+    width: 100%;
+    max-width: 400px;
+    padding: 20px;
+  }
+  
+  .logo-icon {
+    font-size: 3rem;
+  }
+  
+  .logo-badge {
+    width: 25px;
+    height: 25px;
+    font-size: 1rem;
+  }
+  
+  .login-logo {
+    margin-bottom: 20px;
   }
   
   .login-logo h1 {
-    font-size: 1.5rem;
+    font-size: 1.3rem;
+    line-height: 1.2;
+  }
+  
+  .form-group input {
+    font-size: 16px; /* Evita zoom en iOS */
+    padding: 12px;
+  }
+  
+  .btn-login {
+    width: 100%;
+    padding: 12px;
+    font-size: 16px;
   }
 }
 

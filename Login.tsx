@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useNotifications } from './NotificationContext';
-import LogoSVG from './LogoSVG';
 
 interface LoginProps {
   onLoginSuccess: (credentials: { email: string, password: string }) => void;
@@ -26,7 +25,10 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onSwitchToRegister, onFor
     <div className="login-container">
       <form className="login-form" onSubmit={handleSubmit}>
         <div className="login-logo">
-          <LogoSVG className="logo-image" />
+          <div className="logo-simple">
+            <div className="logo-icon">📋</div>
+            <div className="logo-badge">✓</div>
+          </div>
           <h1>Autocontrol Sanitario Pro</h1>
         </div>
         <p>Introduzca sus credenciales para acceder al panel.</p>

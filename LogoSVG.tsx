@@ -6,6 +6,7 @@ const LogoSVG: React.FC<{ className?: string }> = ({ className }) => {
       className={className}
       viewBox="0 0 200 200" 
       xmlns="http://www.w3.org/2000/svg"
+      style={{ maxWidth: '100%', height: 'auto' }}
     >
       {/* Clipboard background */}
       <rect x="40" y="30" width="120" height="140" rx="8" fill="#E85A5A" stroke="#D44545" strokeWidth="3"/>
