@@ -38,6 +38,28 @@ body {
   flex-direction: column;
 }
 
+/* Login Logo */
+.login-logo {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.logo-image {
+  width: 120px;
+  height: auto;
+  margin-bottom: 15px;
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.login-logo h1 {
+  margin: 0;
+  color: var(--primary-color);
+  font-size: 1.8rem;
+  font-weight: 600;
+}
+
 /* Login Footer */
 .login-footer {
   margin-top: 20px;
@@ -55,6 +77,17 @@ body {
 .login-footer strong {
   color: var(--primary-color);
   font-weight: 600;
+}
+
+/* Responsive logo */
+@media (max-width: 768px) {
+  .logo-image {
+    width: 100px;
+  }
+  
+  .login-logo h1 {
+    font-size: 1.5rem;
+  }
 }
 
 
