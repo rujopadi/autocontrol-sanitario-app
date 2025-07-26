@@ -12,7 +12,8 @@ import TechnicalSheetsPage from './TechnicalSheetsPage';
 import HelpButton from './HelpButton';
 import HelpModal from './HelpModal';
 import SettingsPage from './SettingsPage'; // Import SettingsPage
-import { User, Supplier, ProductType, DeliveryRecord, StorageUnit, StorageRecord, DailySurface, DailyCleaningRecord, FrequentArea, Costing, OutgoingRecord, ElaboratedRecord, TechnicalSheet, EstablishmentInfo } from './App';
+import IncidentsPage from './IncidentsPage'; // Import IncidentsPage
+import { User, Supplier, ProductType, DeliveryRecord, StorageUnit, StorageRecord, DailySurface, DailyCleaningRecord, FrequentArea, Costing, OutgoingRecord, ElaboratedRecord, TechnicalSheet, EstablishmentInfo, Incident, CorrectiveAction, IncidentFormData, CorrectiveActionFormData } from './App';
 
 // --- PROPS INTERFACE ---
 interface DashboardProps {
@@ -58,6 +59,13 @@ interface DashboardProps {
   technicalSheets: TechnicalSheet[];
   onAddTechnicalSheet: (sheet: Omit<TechnicalSheet, 'id'>) => void;
   onDeleteTechnicalSheet: (id: string) => void;
+  incidents: Incident[];
+  onAddIncident: (incident: IncidentFormData) => void;
+  onUpdateIncident: (id: string, updates: Partial<Incident>) => void;
+  onDeleteIncident: (id: string) => void;
+  onAddCorrectiveAction: (action: CorrectiveActionFormData) => void;
+  onUpdateCorrectiveAction: (id: string, updates: Partial<CorrectiveAction>) => void;
+  onDeleteCorrectiveAction: (id: string) => void;
   establishmentInfo: EstablishmentInfo;
   onUpdateEstablishmentInfo: (info: EstablishmentInfo) => void;
 }
@@ -115,6 +123,30 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
   const todayStr = new Date().toISOString().slice(0, 10);
   const receptionsToday = props.deliveryRecords.filter(r => r.receptionDate === todayStr).length;
 
+  // Cálculos para widgets de incidencias
+  const openIncidents = props.incidents.filter(i => i.status === 'Abierta').length;
+  const criticalIncidents = props.incidents.filter(i => i.severity === 'Crítica' && i.status !== 'Resuelta').length;
+  const overdueIncidents = props.incidents.filter(incident => {
+    if (incident.status === 'Resuelta') return false;
+    const createdDate = new Date(incident.createdAt);
+    const daysSinceCreated = Math.floor((today.getTime() - createdDate.getTime()) / (1000 * 60 * 60 * 24));
+    return daysSinceCreated > 7; // Más de 7 días sin resolver
+  }).length;
+  
+  const incidentsThisWeek = props.incidents.filter(incident => {
+    const createdDate = new Date(incident.createdAt);
+    const weekAgo = new Date();
+    weekAgo.setDate(weekAgo.getDate() - 7);
+    return createdDate >= weekAgo;
+  }).length;
+
+  const resolvedThisMonth = props.incidents.filter(incident => {
+    if (incident.status !== 'Resuelta') return false;
+    const updatedDate = new Date(incident.updatedAt);
+    const thisMonth = new Date();
+    return updatedDate.getMonth() === thisMonth.getMonth() && updatedDate.getFullYear() === thisMonth.getFullYear();
+  }).length;
+
 
   const renderContent = () => {
     switch (activePage) {
@@ -122,6 +154,8 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
         return (
           <>
             <h1>Panel Principal</h1>
+            
+            {/* Widgets principales */}
             <div className="widgets-grid">
               <div className="widget-card">
                 <h3>Controles Pendientes Hoy</h3>
@@ -139,6 +173,143 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
                 <p className="widget-footer">Entregas de proveedores registradas hoy.</p>
               </div>
             </div>
+
+            {/* Widgets de incidencias */}
+            <div className="dashboard-section">
+              <h2>Estado de Incidencias</h2>
+              <div className="widgets-grid">
+                <div className="widget-card incident-widget">
+                  <h3>Incidencias Abiertas</h3>
+                  <p className={`widget-value ${openIncidents > 0 ? 'warning' : 'success'}`}>{openIncidents}</p>
+                  <p className="widget-footer">Incidencias que requieren atención.</p>
+                  {openIncidents > 0 && (
+                    <div className="widget-action">
+                      <button 
+                        className="btn-link" 
+                        onClick={() => handleNav('Incidencias')}
+                      >
+                        Ver incidencias →
+                      </button>
+                    </div>
+                  )}
+                </div>
+                
+                <div className="widget-card incident-widget critical">
+                  <h3>Incidencias Críticas</h3>
+                  <p className={`widget-value ${criticalIncidents > 0 ? 'danger' : 'success'}`}>{criticalIncidents}</p>
+                  <p className="widget-footer">Incidencias críticas sin resolver.</p>
+                  {criticalIncidents > 0 && (
+                    <div className="widget-action">
+                      <button 
+                        className="btn-link critical" 
+                        onClick={() => handleNav('Incidencias')}
+                      >
+                        ¡Atención inmediata! →
+                      </button>
+                    </div>
+                  )}
+                </div>
+                
+                <div className="widget-card incident-widget">
+                  <h3>Incidencias Vencidas</h3>
+                  <p className={`widget-value ${overdueIncidents > 0 ? 'danger' : 'success'}`}>{overdueIncidents}</p>
+                  <p className="widget-footer">Más de 7 días sin resolver.</p>
+                  {overdueIncidents > 0 && (
+                    <div className="widget-action">
+                      <button 
+                        className="btn-link" 
+                        onClick={() => handleNav('Incidencias')}
+                      >
+                        Revisar vencidas →
+                      </button>
+                    </div>
+                  )}
+                </div>
+                
+                <div className="widget-card incident-widget success">
+                  <h3>Resueltas Este Mes</h3>
+                  <p className="widget-value success">{resolvedThisMonth}</p>
+                  <p className="widget-footer">Incidencias resueltas en el mes actual.</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Resumen semanal */}
+            <div className="dashboard-section">
+              <h2>Resumen Semanal</h2>
+              <div className="summary-cards">
+                <div className="summary-card">
+                  <div className="summary-icon">📊</div>
+                  <div className="summary-content">
+                    <h4>Nuevas Incidencias</h4>
+                    <p className="summary-value">{incidentsThisWeek}</p>
+                    <p className="summary-text">registradas esta semana</p>
+                  </div>
+                </div>
+                
+                <div className="summary-card">
+                  <div className="summary-icon">✅</div>
+                  <div className="summary-content">
+                    <h4>Tasa de Resolución</h4>
+                    <p className="summary-value">
+                      {props.incidents.length > 0 
+                        ? Math.round((resolvedThisMonth / props.incidents.length) * 100)
+                        : 0}%
+                    </p>
+                    <p className="summary-text">incidencias resueltas</p>
+                  </div>
+                </div>
+                
+                <div className="summary-card">
+                  <div className="summary-icon">⚠️</div>
+                  <div className="summary-content">
+                    <h4>Atención Requerida</h4>
+                    <p className="summary-value">{criticalIncidents + overdueIncidents}</p>
+                    <p className="summary-text">incidencias urgentes</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Acciones rápidas */}
+            {(criticalIncidents > 0 || overdueIncidents > 0) && (
+              <div className="dashboard-section">
+                <h2>Acciones Recomendadas</h2>
+                <div className="action-cards">
+                  {criticalIncidents > 0 && (
+                    <div className="action-card critical">
+                      <div className="action-icon">🚨</div>
+                      <div className="action-content">
+                        <h4>Incidencias Críticas Pendientes</h4>
+                        <p>Hay {criticalIncidents} incidencia{criticalIncidents > 1 ? 's' : ''} crítica{criticalIncidents > 1 ? 's' : ''} que requiere{criticalIncidents > 1 ? 'n' : ''} atención inmediata.</p>
+                        <button 
+                          className="btn-action critical" 
+                          onClick={() => handleNav('Incidencias')}
+                        >
+                          Revisar Ahora
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {overdueIncidents > 0 && (
+                    <div className="action-card warning">
+                      <div className="action-icon">⏰</div>
+                      <div className="action-content">
+                        <h4>Incidencias Vencidas</h4>
+                        <p>Hay {overdueIncidents} incidencia{overdueIncidents > 1 ? 's' : ''} que lleva{overdueIncidents > 1 ? 'n' : ''} más de 7 días sin resolver.</p>
+                        <button 
+                          className="btn-action warning" 
+                          onClick={() => handleNav('Incidencias')}
+                        >
+                          Revisar Estado
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </>
         );
       case 'Recepción y Transporte':
@@ -203,10 +374,23 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
             costings={props.costings}
             onSetCostings={props.onSetCostings}
         />;
+      case 'Incidencias':
+        return <IncidentsPage 
+          users={props.users}
+          incidents={props.incidents}
+          onAddIncident={props.onAddIncident}
+          onUpdateIncident={props.onUpdateIncident}
+          onDeleteIncident={props.onDeleteIncident}
+          onAddCorrectiveAction={props.onAddCorrectiveAction}
+          onUpdateCorrectiveAction={props.onUpdateCorrectiveAction}
+          onDeleteCorrectiveAction={props.onDeleteCorrectiveAction}
+          establishmentInfo={props.establishmentInfo}
+          currentUser={props.currentUser}
+        />;
       case 'Usuarios':
-        return isCurrentUserAdmin ? <UsersPage users={props.users} onAddUser={props.onAddUser} onDeleteUser={props.onDeleteUser} onUpdateUser={props.onUpdateUser} /> : <h1>Acceso Denegado</h1>;
+        return isCurrentUserAdmin ? <UsersPage users={props.users} onAddUser={props.onAddUser} onDeleteUser={props.onDeleteUser} onUpdateUser={props.onUpdateUser} currentUser={props.currentUser} /> : <h1>Acceso Denegado</h1>;
       case 'Configuración':
-        return isCurrentUserAdmin ? <SettingsPage info={props.establishmentInfo} onUpdateInfo={props.onUpdateEstablishmentInfo} /> : <h1>Acceso Denegado</h1>;
+        return <SettingsPage info={props.establishmentInfo} onUpdateInfo={props.onUpdateEstablishmentInfo} currentUser={props.currentUser} />;
       default:
         // Placeholder for other pages, showing the title
         return <h1>{activePage}</h1>;

@@ -8,14 +8,29 @@ import ResetPassword from './ResetPassword';
 import { NotificationProvider, useNotifications } from './NotificationContext';
 import NotificationContainer from './NotificationContainer';
 
-// --- INTERFACES (Sin cambios) ---
+// --- INTERFACES ---
 export interface EstablishmentInfo {
-    name: string; address: string; city: string; postalCode: string; sanitaryRegistry: string;
+    name: string; 
+    address: string; 
+    city: string; 
+    postalCode: string; 
+    phone: string;
+    email: string;
+    cif: string;
+    sanitaryRegistry: string;
+    technicalResponsible: string;
+    updatedAt?: string;
 }
 export interface User {
   id: string; // Mongo usa strings para los IDs
-  name: string; email: string; password?: string; 
-  isAdmin?: boolean;
+  name: string; 
+  email: string; 
+  password?: string; 
+  role: 'Administrador' | 'Usuario' | 'Solo Lectura';
+  isActive: boolean;
+  isAdmin?: boolean; // Mantener compatibilidad
+  createdAt?: string;
+  updatedAt?: string;
 }
 export interface Supplier {
   id: string; name: string;
@@ -39,6 +54,52 @@ export interface OutgoingRecord { id: string; productName: string; quantity: str
 export interface ElaboratedRecord { id: string; productName: string; elaborationDate: string; productLot: string; ingredients: { name: string; supplier: string; lot: string; quantity: string; }[]; destination: string; quantitySent: string; userId: string; }
 export interface TechnicalSheet { id: string; productName: string; ingredients: Omit<Ingredient, 'id'>[]; elaboration: string; presentation: string; shelfLife: string; labeling: string; }
 export interface Ingredient { id: string; name: string; lot: string; isAllergen: boolean; }
+
+// --- NUEVAS INTERFACES PARA INCIDENCIAS ---
+export interface Incident {
+  id: string;
+  title: string;
+  description: string;
+  detectionDate: string; // ISO string
+  affectedArea: string;
+  severity: 'Baja' | 'Media' | 'Alta' | 'Crítica';
+  status: 'Abierta' | 'En Proceso' | 'Resuelta';
+  reportedBy: string; // User ID
+  createdAt: string; // ISO string
+  updatedAt: string; // ISO string
+  correctiveActions: CorrectiveAction[];
+}
+
+export interface CorrectiveAction {
+  id: string;
+  incidentId: string;
+  description: string;
+  implementationDate: string; // ISO string
+  responsibleUser: string; // User ID
+  status: 'Pendiente' | 'En Progreso' | 'Completada';
+  createdAt: string; // ISO string
+}
+
+// --- TIPOS DE UTILIDAD ---
+export type IncidentSeverity = 'Baja' | 'Media' | 'Alta' | 'Crítica';
+export type IncidentStatus = 'Abierta' | 'En Proceso' | 'Resuelta';
+export type CorrectiveActionStatus = 'Pendiente' | 'En Progreso' | 'Completada';
+export type UserRole = 'Administrador' | 'Usuario' | 'Solo Lectura';
+
+// --- TIPOS PARA FORMULARIOS ---
+export type IncidentFormData = Omit<Incident, 'id' | 'createdAt' | 'updatedAt' | 'correctiveActions'>;
+export type CorrectiveActionFormData = Omit<CorrectiveAction, 'id' | 'createdAt'>;
+export type UserFormData = Omit<User, 'id' | 'createdAt' | 'updatedAt'>;
+
+// --- TIPOS PARA FILTROS ---
+export interface IncidentFilters {
+  status?: IncidentStatus;
+  severity?: IncidentSeverity;
+  affectedArea?: string;
+  startDate?: string;
+  endDate?: string;
+  searchText?: string;
+}
 
 // Se leerá desde las variables de entorno que configuraremos en Dokploy
 const API_URL = import.meta.env.VITE_API_URL || 'http://autocontrolsanitarioapp-backend-5plj5f-f5ea1c-31-97-193-114.traefik.me';
@@ -71,6 +132,7 @@ const AppContent: React.FC = () => {
   const [outgoingRecords] = useState<OutgoingRecord[]>([]);
   const [elaboratedRecords] = useState<ElaboratedRecord[]>([]);
   const [technicalSheets] = useState<TechnicalSheet[]>([]);
+  const [incidents, setIncidents] = useState<Incident[]>([]);
   
 
   const apiFetch = useCallback(async (url: string, options: RequestInit = {}) => {
@@ -232,7 +294,7 @@ const AppContent: React.FC = () => {
     }
   };
   
-  const handleAddUser = async (details: Omit<User, 'id'>) => {
+  const handleAddUser = async (details: UserFormData) => {
     try {
         const response = await apiFetch('/api/users', {
             method: 'POST',
@@ -247,7 +309,7 @@ const AppContent: React.FC = () => {
     }
   };
 
-  const handleUpdateUser = async (id: string, details: { name: string; email: string }) => {
+  const handleUpdateUser = async (id: string, details: Partial<User>) => {
     try {
         const response = await apiFetch(`/api/users/${id}`, {
             method: 'PUT',
@@ -405,6 +467,137 @@ const AppContent: React.FC = () => {
     success('Limpieza registrada', 'Se ha registrado la limpieza del área.');
   };
 
+  // Handlers para Incidencias
+  const handleAddIncident = async (incident: IncidentFormData) => {
+    try {
+      // TODO: Implementar llamada al backend cuando esté disponible
+      // const response = await apiFetch('/api/incidents', {
+      //   method: 'POST',
+      //   body: JSON.stringify(incident)
+      // });
+      // const newIncident = await response.json();
+      
+      // Por ahora, crear incidencia localmente
+      const newIncident: Incident = {
+        id: Date.now().toString(),
+        ...incident,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        correctiveActions: []
+      };
+      
+      setIncidents(prev => [newIncident, ...prev]);
+      success('Incidencia registrada', 'La incidencia se ha registrado correctamente.');
+    } catch (error: any) {
+      error('Error al registrar', error.message || 'No se pudo registrar la incidencia.');
+    }
+  };
+
+  const handleUpdateIncident = async (id: string, updates: Partial<Incident>) => {
+    try {
+      // TODO: Implementar llamada al backend cuando esté disponible
+      // const response = await apiFetch(`/api/incidents/${id}`, {
+      //   method: 'PUT',
+      //   body: JSON.stringify(updates)
+      // });
+      
+      setIncidents(prev => prev.map(incident => 
+        incident.id === id 
+          ? { ...incident, ...updates, updatedAt: new Date().toISOString() }
+          : incident
+      ));
+      
+      if (updates.status === 'Resuelta') {
+        success('Incidencia resuelta', 'La incidencia ha sido marcada como resuelta.');
+      }
+    } catch (err: any) {
+      error('Error al actualizar', err.message || 'No se pudo actualizar la incidencia.');
+    }
+  };
+
+  const handleDeleteIncident = async (id: string) => {
+    try {
+      // TODO: Implementar llamada al backend cuando esté disponible
+      // const response = await apiFetch(`/api/incidents/${id}`, { method: 'DELETE' });
+      
+      setIncidents(prev => prev.filter(incident => incident.id !== id));
+      success('Incidencia eliminada', 'La incidencia se ha eliminado correctamente.');
+    } catch (err: any) {
+      error('Error al eliminar', err.message || 'No se pudo eliminar la incidencia.');
+    }
+  };
+
+  const handleAddCorrectiveAction = async (action: CorrectiveActionFormData) => {
+    try {
+      // TODO: Implementar llamada al backend cuando esté disponible
+      // const response = await apiFetch('/api/corrective-actions', {
+      //   method: 'POST',
+      //   body: JSON.stringify(action)
+      // });
+      
+      const newAction: CorrectiveAction = {
+        id: Date.now().toString(),
+        ...action,
+        createdAt: new Date().toISOString()
+      };
+      
+      setIncidents(prev => prev.map(incident => 
+        incident.id === action.incidentId
+          ? { 
+              ...incident, 
+              correctiveActions: [...incident.correctiveActions, newAction],
+              updatedAt: new Date().toISOString()
+            }
+          : incident
+      ));
+      
+      success('Acción registrada', 'La acción correctiva se ha registrado correctamente.');
+    } catch (err: any) {
+      error('Error al registrar', err.message || 'No se pudo registrar la acción correctiva.');
+    }
+  };
+
+  const handleUpdateCorrectiveAction = async (id: string, updates: Partial<CorrectiveAction>) => {
+    try {
+      // TODO: Implementar llamada al backend cuando esté disponible
+      // const response = await apiFetch(`/api/corrective-actions/${id}`, {
+      //   method: 'PUT',
+      //   body: JSON.stringify(updates)
+      // });
+      
+      setIncidents(prev => prev.map(incident => ({
+        ...incident,
+        correctiveActions: incident.correctiveActions.map(action =>
+          action.id === id ? { ...action, ...updates } : action
+        ),
+        updatedAt: new Date().toISOString()
+      })));
+      
+      if (updates.status === 'Completada') {
+        success('Acción completada', 'La acción correctiva ha sido marcada como completada.');
+      }
+    } catch (err: any) {
+      error('Error al actualizar', err.message || 'No se pudo actualizar la acción correctiva.');
+    }
+  };
+
+  const handleDeleteCorrectiveAction = async (id: string) => {
+    try {
+      // TODO: Implementar llamada al backend cuando esté disponible
+      // const response = await apiFetch(`/api/corrective-actions/${id}`, { method: 'DELETE' });
+      
+      setIncidents(prev => prev.map(incident => ({
+        ...incident,
+        correctiveActions: incident.correctiveActions.filter(action => action.id !== id),
+        updatedAt: new Date().toISOString()
+      })));
+      
+      success('Acción eliminada', 'La acción correctiva se ha eliminado correctamente.');
+    } catch (err: any) {
+      error('Error al eliminar', err.message || 'No se pudo eliminar la acción correctiva.');
+    }
+  };
+
   if (isLoading) {
       return <div className="login-container"><h1>Cargando...</h1></div>;
   }
@@ -475,6 +668,13 @@ const AppContent: React.FC = () => {
           technicalSheets={technicalSheets}
           onAddTechnicalSheet={() => {}}
           onDeleteTechnicalSheet={() => {}}
+          incidents={incidents}
+          onAddIncident={handleAddIncident}
+          onUpdateIncident={handleUpdateIncident}
+          onDeleteIncident={handleDeleteIncident}
+          onAddCorrectiveAction={handleAddCorrectiveAction}
+          onUpdateCorrectiveAction={handleUpdateCorrectiveAction}
+          onDeleteCorrectiveAction={handleDeleteCorrectiveAction}
         />
       )}
     </>

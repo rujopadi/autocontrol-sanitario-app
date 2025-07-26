@@ -22,6 +22,17 @@ router.get('/', auth, async (req, res) => {
 // @access  Private
 router.post('/', auth, async (req, res) => {
     const { supplierId, productTypeId, temperature, receptionDate, docsOk, albaranImage } = req.body;
+    
+    // Debug logging
+    console.log('📥 Backend recibió:', {
+        supplierId,
+        productTypeId,
+        temperature,
+        receptionDate,
+        docsOk,
+        albaranImage: albaranImage ? `[Imagen de ${albaranImage.length} caracteres]` : 'Sin imagen'
+    });
+    
     try {
         const newRecord = new DeliveryRecord({
             userId: req.user.id,
@@ -32,10 +43,17 @@ router.post('/', auth, async (req, res) => {
             docsOk,
             albaranImage
         });
+        
         const record = await newRecord.save();
+        
+        console.log('💾 Guardado en BD:', {
+            id: record._id,
+            albaranImage: record.albaranImage ? `[Imagen de ${record.albaranImage.length} caracteres]` : 'Sin imagen'
+        });
+        
         res.status(201).json(record);
     } catch (err) {
-        console.error(err.message);
+        console.error('❌ Error al guardar:', err.message);
         res.status(500).send('Error del servidor');
     }
 });

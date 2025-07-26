@@ -141,6 +141,11 @@ const ReceptionPage: React.FC<ReceptionPageProps> = ({
         };
         
         console.log('📝 Enviando registro:', recordData);
+        console.log('🖼️ Estado de imagen antes de enviar:', {
+            hasImage: !!recordAlbaranImage,
+            imageLength: recordAlbaranImage?.length || 0,
+            imagePreview: recordAlbaranImage?.substring(0, 50) + '...'
+        });
         
         try {
             onAddRecord(recordData);
