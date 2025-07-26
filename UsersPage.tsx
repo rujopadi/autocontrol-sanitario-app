@@ -2,6 +2,7 @@
 import React, { useState, useMemo } from 'react';
 import { User, UserRole, UserFormData } from './App';
 import { useNotifications } from './NotificationContext';
+import { createCollaboratorUser, getCompanyUsers } from './utils/dataMigration';
 
 interface UsersPageProps {
   users: User[];
@@ -9,9 +10,10 @@ interface UsersPageProps {
   onDeleteUser: (id: string) => void;
   onUpdateUser: (id: string, details: Partial<User>) => void;
   currentUser: User;
+  onRefreshUsers: () => void; // Nueva prop para refrescar usuarios
 }
 
-const UsersPage: React.FC<UsersPageProps> = ({ users, onAddUser, onDeleteUser, onUpdateUser, currentUser }) => {
+const UsersPage: React.FC<UsersPageProps> = ({ users, onAddUser, onDeleteUser, onUpdateUser, currentUser, onRefreshUsers }) => {
   const { warning, success, error } = useNotifications();
   
   // Form state for new user
@@ -38,9 +40,14 @@ const UsersPage: React.FC<UsersPageProps> = ({ users, onAddUser, onDeleteUser, o
   // Validation errors
   const [validationErrors, setValidationErrors] = useState<{[key: string]: string}>({});
 
+  // Filtrar solo usuarios de la misma empresa
+  const companyUsers = useMemo(() => {
+    return users.filter(user => user.companyId === currentUser.companyId);
+  }, [users, currentUser.companyId]);
+
   // Derived data
   const filteredUsers = useMemo(() => {
-    return users.filter(user => {
+    return companyUsers.filter(user => {
       // Role filter
       if (roleFilter && user.role !== roleFilter) return false;
       
@@ -137,6 +144,38 @@ const UsersPage: React.FC<UsersPageProps> = ({ users, onAddUser, onDeleteUser, o
       success('Usuario creado', `El usuario ${formData.name} se ha creado correctamente.`);
     } catch (err) {
       error('Error al crear usuario', 'No se pudo crear el usuario.');
+    }
+  };
+
+  // Nueva función para crear usuarios colaboradores
+  const handleCreateCollaborator = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    const collaboratorData = { 
+      name: name.trim(), 
+      email: email.trim(), 
+      password 
+    };
+    
+    if (!validateForm({...collaboratorData, role: 'Usuario', isActive: true})) {
+      warning('Errores de validación', 'Por favor, corrija los errores en el formulario.');
+      return;
+    }
+
+    try {
+      createCollaboratorUser(collaboratorData, currentUser);
+      onRefreshUsers(); // Refrescar la lista de usuarios
+      
+      // Reset form
+      setName('');
+      setEmail('');
+      setPassword('');
+      setRole('Usuario');
+      setIsActive(true);
+      setValidationErrors({});
+      success('Usuario colaborador creado', `El usuario ${collaboratorData.name} se ha creado correctamente y puede acceder al sistema.`);
+    } catch (err: any) {
+      error('Error al crear usuario colaborador', err.message || 'No se pudo crear el usuario colaborador.');
     }
   };
 
@@ -366,9 +405,18 @@ const UsersPage: React.FC<UsersPageProps> = ({ users, onAddUser, onDeleteUser, o
               />
               <label htmlFor="new-user-active">Usuario activo</label>
             </div>
-            <button type="submit" className="btn-submit">
-              Crear Usuario
-            </button>
+            <div className="form-buttons">
+              <button type="submit" className="btn-submit">
+                Crear Usuario
+              </button>
+              <button 
+                type="button" 
+                className="btn-secondary"
+                onClick={handleCreateCollaborator}
+              >
+                Crear Usuario Colaborador
+              </button>
+            </div>
           </form>
         </div>
 

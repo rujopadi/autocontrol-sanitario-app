@@ -23,6 +23,7 @@ interface DashboardProps {
   onAddUser: (details: Omit<User, 'id'>) => void;
   onDeleteUser: (id: string) => void;
   onUpdateUser: (id: string, details: { name: string; email: string; }) => void;
+  onRefreshUsers: () => void;
   suppliers: Supplier[];
   onAddSupplier: (name: string) => void;
   onDeleteSupplier: (id: string) => void;
@@ -325,6 +326,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
             onAddRecord={props.onAddDeliveryRecord}
             onDeleteRecord={props.onDeleteDeliveryRecord}
             establishmentInfo={props.establishmentInfo}
+            currentUser={props.currentUser}
         />;
       case 'Almacenamiento':
         return <StoragePage 
@@ -336,12 +338,14 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
             onAddRecord={props.onAddStorageRecord}
             onDeleteRecord={props.onDeleteStorageRecord}
             establishmentInfo={props.establishmentInfo}
+            currentUser={props.currentUser}
         />;
       case 'Fichas Técnicas':
         return <TechnicalSheetsPage 
             sheets={props.technicalSheets}
             onAddSheet={props.onAddTechnicalSheet}
             onDeleteSheet={props.onDeleteTechnicalSheet}
+            currentUser={props.currentUser}
         />;
       case 'Limpieza e Higiene':
         return <CleaningPage 
@@ -388,7 +392,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
           currentUser={props.currentUser}
         />;
       case 'Usuarios':
-        return isCurrentUserAdmin ? <UsersPage users={props.users} onAddUser={props.onAddUser} onDeleteUser={props.onDeleteUser} onUpdateUser={props.onUpdateUser} currentUser={props.currentUser} /> : <h1>Acceso Denegado</h1>;
+        return isCurrentUserAdmin ? <UsersPage users={props.users} onAddUser={props.onAddUser} onDeleteUser={props.onDeleteUser} onUpdateUser={props.onUpdateUser} currentUser={props.currentUser} onRefreshUsers={props.onRefreshUsers} /> : <h1>Acceso Denegado</h1>;
       case 'Configuración':
         return <SettingsPage info={props.establishmentInfo} onUpdateInfo={props.onUpdateEstablishmentInfo} currentUser={props.currentUser} />;
       default:

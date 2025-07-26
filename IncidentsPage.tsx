@@ -2,6 +2,8 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { exportToPDF, exportToExcel } from './exportUtils';
 import { User, Incident, IncidentFormData, IncidentSeverity, IncidentStatus, CorrectiveAction, CorrectiveActionFormData, CorrectiveActionStatus, EstablishmentInfo } from './App';
 import { useNotifications } from './NotificationContext';
+import UserSelector from './components/UserSelector';
+import { getCompanyUsers } from './utils/dataMigration';
 
 interface IncidentsPageProps {
     users: User[];
@@ -41,6 +43,18 @@ const IncidentsPage: React.FC<IncidentsPageProps> = ({
     const [incidentDate, setIncidentDate] = useState(new Date().toISOString().slice(0, 10));
     const [incidentArea, setIncidentArea] = useState('');
     const [incidentSeverity, setIncidentSeverity] = useState<IncidentSeverity>('Media');
+    
+    // Estados para trazabilidad
+    const [registeredById, setRegisteredById] = useState('');
+    const [registeredBy, setRegisteredBy] = useState('');
+    
+    // Obtener usuarios de la empresa
+    const companyUsers = useMemo(() => getCompanyUsers(currentUser), [currentUser]);
+    
+    // Estados para resolución de incidencias
+    const [showResolveDialog, setShowResolveDialog] = useState(false);
+    const [incidentToResolve, setIncidentToResolve] = useState<string | null>(null);
+    const [resolutionNotes, setResolutionNotes] = useState('');
 
     // Form state: New Corrective Action
     const [actionDescription, setActionDescription] = useState('');
@@ -93,8 +107,8 @@ const IncidentsPage: React.FC<IncidentsPageProps> = ({
     const handleAddIncident = (e: React.FormEvent) => {
         e.preventDefault();
         
-        if (!incidentTitle.trim() || !incidentDescription.trim() || !incidentArea.trim()) {
-            warning('Campos requeridos', 'Por favor, complete todos los campos de la incidencia.');
+        if (!incidentTitle.trim() || !incidentDescription.trim() || !incidentArea.trim() || !registeredBy) {
+            warning('Campos requeridos', 'Por favor, complete todos los campos de la incidencia incluyendo quién la registra.');
             return;
         }
 
@@ -105,7 +119,10 @@ const IncidentsPage: React.FC<IncidentsPageProps> = ({
             affectedArea: incidentArea.trim(),
             severity: incidentSeverity,
             status: 'Abierta',
-            reportedBy: currentUser.id
+            reportedBy: currentUser.id,
+            registeredBy,
+            registeredById,
+            registeredAt: new Date().toISOString()
         };
 
         try {
@@ -115,6 +132,8 @@ const IncidentsPage: React.FC<IncidentsPageProps> = ({
             setIncidentDescription('');
             setIncidentArea('');
             setIncidentSeverity('Media');
+            setRegisteredBy('');
+            setRegisteredById('');
             success('Incidencia registrada', 'La incidencia se ha registrado correctamente.');
         } catch (error) {
             console.error('Error al guardar incidencia:', error);
@@ -197,6 +216,33 @@ const IncidentsPage: React.FC<IncidentsPageProps> = ({
         }
     };
 
+    // Funciones para resolución de incidencias
+    const handleResolveIncident = (incidentId: string) => {
+        setIncidentToResolve(incidentId);
+        setShowResolveDialog(true);
+    };
+
+    const confirmResolveIncident = () => {
+        if (incidentToResolve) {
+            onUpdateIncident(incidentToResolve, {
+                status: 'Resuelta',
+                resolutionNotes: resolutionNotes.trim(),
+                resolvedAt: new Date().toISOString(),
+                resolvedBy: currentUser.name
+            });
+            success('Incidencia resuelta', 'La incidencia se ha marcado como resuelta.');
+        }
+        setShowResolveDialog(false);
+        setIncidentToResolve(null);
+        setResolutionNotes('');
+    };
+
+    const cancelResolveIncident = () => {
+        setShowResolveDialog(false);
+        setIncidentToResolve(null);
+        setResolutionNotes('');
+    };
+
     // Función para limpiar todos los filtros
     const clearAllFilters = () => {
         setStartDate('');
@@ -249,14 +295,14 @@ const IncidentsPage: React.FC<IncidentsPageProps> = ({
     };
 
     const handleExportPDF = () => {
-        const headers = ["Fecha", "Título", "Área", "Gravedad", "Estado", "Reportado por"];
+        const headers = ["Fecha", "Título", "Área", "Gravedad", "Estado", "Registrado por"];
         const data = filteredIncidents.map(incident => [
             new Date(incident.detectionDate).toLocaleDateString('es-ES'),
             incident.title,
             incident.affectedArea,
             incident.severity,
             incident.status,
-            usersMap.get(incident.reportedBy) || 'N/A'
+            incident.registeredBy || usersMap.get(incident.reportedBy) || 'N/A'
         ]);
         exportToPDF("Registro de Incidencias", headers, data, "registro_incidencias", establishmentInfo);
     };
@@ -269,7 +315,7 @@ const IncidentsPage: React.FC<IncidentsPageProps> = ({
             "Área Afectada": incident.affectedArea,
             "Gravedad": incident.severity,
             "Estado": incident.status,
-            "Reportado por": usersMap.get(incident.reportedBy) || 'N/A',
+            "Registrado por": incident.registeredBy || usersMap.get(incident.reportedBy) || 'N/A',
             "Acciones Correctivas": incident.correctiveActions.length,
             "Fecha de Creación": new Date(incident.createdAt).toLocaleDateString('es-ES')
         }));
@@ -355,6 +401,19 @@ const IncidentsPage: React.FC<IncidentsPageProps> = ({
                                     <option value="Crítica">Crítica</option>
                                 </select>
                             </div>
+                            
+                            <UserSelector
+                                users={companyUsers}
+                                selectedUserId={registeredById}
+                                selectedUserName={registeredBy}
+                                onUserSelect={(userId, userName) => {
+                                    setRegisteredById(userId);
+                                    setRegisteredBy(userName);
+                                }}
+                                required={true}
+                                label="Registrado por"
+                            />
+                            
                             <button type="submit" className="btn-submit">
                                 Registrar Incidencia
                             </button>
@@ -548,7 +607,7 @@ const IncidentsPage: React.FC<IncidentsPageProps> = ({
                             <tbody>
                                 {filteredIncidents.map(incident => {
                                     const isExpanded = expandedIncidentId === incident.id;
-                                    const reportedByName = usersMap.get(incident.reportedBy) || 'N/A';
+                                    const reportedByName = incident.registeredBy || usersMap.get(incident.reportedBy) || 'N/A';
                                     const formattedDate = new Date(incident.detectionDate).toLocaleDateString('es-ES');
                                     
                                     return (
@@ -582,23 +641,42 @@ const IncidentsPage: React.FC<IncidentsPageProps> = ({
                                                         <div className="incident-details">
                                                             <div className="record-details">
                                                                 <div><strong>Descripción</strong><span>{incident.description}</span></div>
-                                                                <div><strong>Reportado por</strong><span>{reportedByName}</span></div>
+                                                                <div><strong>Registrado por</strong><span>{reportedByName}</span></div>
                                                                 <div><strong>Fecha de registro</strong><span>{new Date(incident.createdAt).toLocaleDateString('es-ES')}</span></div>
                                                                 <div><strong>Acciones correctivas</strong><span>{incident.correctiveActions.length} registradas</span></div>
+                                                                {incident.status === 'Resuelta' && incident.resolvedAt && (
+                                                                    <>
+                                                                        <div><strong>Resuelta el</strong><span>{new Date(incident.resolvedAt).toLocaleDateString('es-ES')}</span></div>
+                                                                        {incident.resolvedBy && <div><strong>Resuelta por</strong><span>{incident.resolvedBy}</span></div>}
+                                                                        {incident.resolutionNotes && (
+                                                                            <div><strong>Notas de resolución</strong><span>{incident.resolutionNotes}</span></div>
+                                                                        )}
+                                                                    </>
+                                                                )}
                                                             </div>
 
                                                             {/* Acciones Correctivas */}
                                                             <div className="corrective-actions-section">
                                                                 <div className="section-header">
                                                                     <h4>Acciones Correctivas</h4>
-                                                                    <button 
-                                                                        className="btn-secondary btn-small" 
-                                                                        onClick={() => setShowCorrectiveActionForm(
-                                                                            showCorrectiveActionForm === incident.id ? null : incident.id
+                                                                    <div className="action-buttons">
+                                                                        <button 
+                                                                            className="btn-secondary btn-small" 
+                                                                            onClick={() => setShowCorrectiveActionForm(
+                                                                                showCorrectiveActionForm === incident.id ? null : incident.id
+                                                                            )}
+                                                                        >
+                                                                            {showCorrectiveActionForm === incident.id ? 'Cancelar' : 'Añadir Acción'}
+                                                                        </button>
+                                                                        {incident.status !== 'Resuelta' && (
+                                                                            <button 
+                                                                                className="btn-success btn-small" 
+                                                                                onClick={() => handleResolveIncident(incident.id)}
+                                                                            >
+                                                                                Marcar como Resuelta
+                                                                            </button>
                                                                         )}
-                                                                    >
-                                                                        {showCorrectiveActionForm === incident.id ? 'Cancelar' : 'Añadir Acción'}
-                                                                    </button>
+                                                                    </div>
                                                                 </div>
 
                                                                 {/* Formulario de nueva acción correctiva */}
@@ -739,6 +817,37 @@ const IncidentsPage: React.FC<IncidentsPageProps> = ({
                     <p>No hay incidencias registradas para los filtros seleccionados.</p>
                 )}
             </div>
+            
+            {/* Diálogo de resolución de incidencia */}
+            {showResolveDialog && (
+                <div className="modal-overlay">
+                    <div className="modal-content">
+                        <div className="modal-header">
+                            <h3>Resolver Incidencia</h3>
+                            <button className="modal-close" onClick={cancelResolveIncident}>×</button>
+                        </div>
+                        <div className="modal-body">
+                            <div className="resolution-form">
+                                <label htmlFor="resolution-notes">Notas de resolución (opcional):</label>
+                                <textarea
+                                    id="resolution-notes"
+                                    value={resolutionNotes}
+                                    onChange={(e) => setResolutionNotes(e.target.value)}
+                                    placeholder="Describe cómo se resolvió la incidencia, qué medidas se tomaron, etc."
+                                />
+                            </div>
+                        </div>
+                        <div className="modal-footer">
+                            <button className="btn-secondary" onClick={cancelResolveIncident}>
+                                Cancelar
+                            </button>
+                            <button className="btn-success" onClick={confirmResolveIncident}>
+                                Marcar como Resuelta
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </>
     );
 };

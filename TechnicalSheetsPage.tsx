@@ -1,7 +1,9 @@
 
-import React, { useState } from 'react';
-import { TechnicalSheet } from './App';
+import React, { useState, useMemo } from 'react';
+import { TechnicalSheet, User } from './App';
 import { useNotifications } from './NotificationContext';
+import UserSelector from './components/UserSelector';
+import { getCompanyUsers } from './utils/dataMigration';
 
 // --- Interfaces ---
 interface IngredientFormState {
@@ -15,11 +17,12 @@ interface TechnicalSheetsPageProps {
     sheets: TechnicalSheet[];
     onAddSheet: (sheet: Omit<TechnicalSheet, 'id'>) => void;
     onDeleteSheet: (id: string) => void;
+    currentUser: User;
 }
 
 
 // --- Component ---
-const TechnicalSheetsPage: React.FC<TechnicalSheetsPageProps> = ({ sheets, onAddSheet, onDeleteSheet }) => {
+const TechnicalSheetsPage: React.FC<TechnicalSheetsPageProps> = ({ sheets, onAddSheet, onDeleteSheet, currentUser }) => {
     const { warning, success } = useNotifications();
     
     // --- State ---
@@ -35,6 +38,13 @@ const TechnicalSheetsPage: React.FC<TechnicalSheetsPageProps> = ({ sheets, onAdd
         labeling: ''
     };
     const [formState, setFormState] = useState(initialFormState);
+    
+    // Estados para trazabilidad
+    const [registeredById, setRegisteredById] = useState('');
+    const [registeredBy, setRegisteredBy] = useState('');
+    
+    // Obtener usuarios de la empresa
+    const companyUsers = useMemo(() => getCompanyUsers(currentUser), [currentUser]);
     
     // --- Form Handlers ---
     const handleIngredientChange = (id: string, field: keyof Omit<IngredientFormState, 'id'>, value: any) => {
@@ -66,8 +76,8 @@ const TechnicalSheetsPage: React.FC<TechnicalSheetsPageProps> = ({ sheets, onAdd
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!formState.productName.trim() || formState.ingredients.some(i => !i.name.trim() || !i.lot.trim())) {
-            warning('Campos requeridos', 'Por favor, complete la denominación y todos los campos de los ingredientes.');
+        if (!formState.productName.trim() || formState.ingredients.some(i => !i.name.trim() || !i.lot.trim()) || !registeredBy) {
+            warning('Campos requeridos', 'Por favor, complete la denominación, todos los campos de los ingredientes y quién registra.');
             return;
         }
 
@@ -77,11 +87,16 @@ const TechnicalSheetsPage: React.FC<TechnicalSheetsPageProps> = ({ sheets, onAdd
             elaboration: formState.elaboration,
             presentation: formState.presentation,
             shelfLife: formState.shelfLife,
-            labeling: formState.labeling
+            labeling: formState.labeling,
+            registeredBy,
+            registeredById,
+            registeredAt: new Date().toISOString()
         });
 
         // setExpandedSheetId(Date.now()); // A bit of a hack to ensure the new one might be visible, but IDs change.
         setFormState(initialFormState); // Reset form
+        setRegisteredBy('');
+        setRegisteredById('');
         setIsCreateFormOpen(false);
         success('Ficha técnica creada', `La ficha técnica de "${formState.productName}" se ha creado correctamente.`);
     };
@@ -146,6 +161,18 @@ const TechnicalSheetsPage: React.FC<TechnicalSheetsPageProps> = ({ sheets, onAdd
                                         <input type="text" id="labeling" value={formState.labeling} onChange={e => handleFormChange('labeling', e.target.value)} placeholder="Ej: Contiene sulfitos..."/>
                                     </div>
                                 </div>
+                                
+                                <UserSelector
+                                    users={companyUsers}
+                                    selectedUserId={registeredById}
+                                    selectedUserName={registeredBy}
+                                    onUserSelect={(userId, userName) => {
+                                        setRegisteredById(userId);
+                                        setRegisteredBy(userName);
+                                    }}
+                                    required={true}
+                                    label="Registrado por"
+                                />
                                 
                                 <button type="submit" className="btn-submit">Guardar Ficha Técnica</button>
                             </form>

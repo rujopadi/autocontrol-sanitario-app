@@ -3,6 +3,9 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { exportToPDF, exportToExcel } from './exportUtils';
 import { User, StorageUnit, StorageRecord, EstablishmentInfo } from './App';
 import { useNotifications } from './NotificationContext';
+import UserSelector from './components/UserSelector';
+import ConfirmDialog from './components/ConfirmDialog';
+import { getCompanyUsers } from './utils/dataMigration';
 
 
 interface StoragePageProps {
@@ -14,10 +17,11 @@ interface StoragePageProps {
     onAddRecord: (record: Omit<StorageRecord, 'id' | 'userId'>) => void;
     onDeleteRecord: (id: string) => void;
     establishmentInfo: EstablishmentInfo;
+    currentUser: User;
 }
 
 
-const StoragePage: React.FC<StoragePageProps> = ({ users, units, records, onAddUnit, onDeleteUnit, onAddRecord, onDeleteRecord, establishmentInfo }) => {
+const StoragePage: React.FC<StoragePageProps> = ({ users, units, records, onAddUnit, onDeleteUnit, onAddRecord, onDeleteRecord, establishmentInfo, currentUser }) => {
     const { warning, success } = useNotifications();
     
     // Collapsible sections state
@@ -39,6 +43,17 @@ const StoragePage: React.FC<StoragePageProps> = ({ users, units, records, onAddU
     const [recordHumidity, setRecordHumidity] = useState('');
     const [recordRotation, setRecordRotation] = useState(false);
     const [recordMincing, setRecordMincing] = useState(false);
+    
+    // Estados para trazabilidad
+    const [registeredById, setRegisteredById] = useState('');
+    const [registeredBy, setRegisteredBy] = useState('');
+    
+    // Obtener usuarios de la empresa
+    const companyUsers = useMemo(() => getCompanyUsers(currentUser), [currentUser]);
+    
+    // Estado para el diálogo de confirmación
+    const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+    const [recordToDelete, setRecordToDelete] = useState<string | null>(null);
     
     // State for filtering
     const [startDate, setStartDate] = useState('');
@@ -94,8 +109,8 @@ const StoragePage: React.FC<StoragePageProps> = ({ users, units, records, onAddU
 
     const handleAddRecord = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!recordUnit || !recordTemp.trim()) {
-            warning('Campos requeridos', 'Por favor, complete todos los campos del registro.');
+        if (!recordUnit || !recordTemp.trim() || !registeredBy) {
+            warning('Campos requeridos', 'Por favor, complete todos los campos del registro incluyendo quién lo registra.');
             return;
         }
         if (selectedUnitForRecord?.type === 'Cámara de secado' && !recordHumidity.trim()){
@@ -108,6 +123,9 @@ const StoragePage: React.FC<StoragePageProps> = ({ users, units, records, onAddU
             temperature: recordTemp,
             rotationCheck: recordRotation,
             mincingCheck: recordMincing,
+            registeredBy,
+            registeredById,
+            registeredAt: new Date().toISOString(),
             ...(selectedUnitForRecord?.type === 'Cámara de secado' && { humidity: recordHumidity })
         });
 
@@ -117,12 +135,27 @@ const StoragePage: React.FC<StoragePageProps> = ({ users, units, records, onAddU
         setRecordRotation(false);
         setRecordMincing(false);
         setRecordDateTime(new Date().toISOString().slice(0, 16));
+        setRegisteredBy('');
+        setRegisteredById('');
     };
     
     const handleDeleteRecord = (recordId: string) => {
-        if (window.confirm('¿Está seguro de que desea eliminar este registro?')) {
-            onDeleteRecord(recordId);
+        setRecordToDelete(recordId);
+        setShowDeleteDialog(true);
+    };
+
+    const confirmDeleteRecord = () => {
+        if (recordToDelete) {
+            onDeleteRecord(recordToDelete);
+            success('Registro eliminado', 'El registro se ha eliminado correctamente.');
         }
+        setShowDeleteDialog(false);
+        setRecordToDelete(null);
+    };
+
+    const cancelDeleteRecord = () => {
+        setShowDeleteDialog(false);
+        setRecordToDelete(null);
     };
 
     const handleExportPDF = () => {
@@ -134,7 +167,7 @@ const StoragePage: React.FC<StoragePageProps> = ({ users, units, records, onAddU
             r.humidity || 'N/A',
             r.rotationCheck ? 'Sí' : 'No',
             r.mincingCheck ? 'Sí' : 'No',
-            usersMap.get(r.userId) || 'N/A'
+            r.registeredBy || usersMap.get(r.userId) || 'N/A'
         ]);
         exportToPDF("Historial de Controles de Almacenamiento", headers, data, "historial_almacenamiento", establishmentInfo);
     };
@@ -147,7 +180,7 @@ const StoragePage: React.FC<StoragePageProps> = ({ users, units, records, onAddU
             "Humedad (%)": r.humidity || 'N/A',
             "Rotación OK": r.rotationCheck ? 'Sí' : 'No',
             "Instrucciones Picado OK": r.mincingCheck ? 'Sí' : 'No',
-            "Usuario": usersMap.get(r.userId) || 'N/A'
+            "Registrado por": r.registeredBy || usersMap.get(r.userId) || 'N/A'
         }));
         exportToExcel(data, "historial_almacenamiento");
     };
@@ -198,6 +231,19 @@ const StoragePage: React.FC<StoragePageProps> = ({ users, units, records, onAddU
                                     <input type="checkbox" id="record-mincing" checked={recordMincing} onChange={e => setRecordMincing(e.target.checked)} />
                                     <label htmlFor="record-mincing">Instrucciones de picado de carne OK</label>
                                 </div>
+                                
+                                <UserSelector
+                                    users={companyUsers}
+                                    selectedUserId={registeredById}
+                                    selectedUserName={registeredBy}
+                                    onUserSelect={(userId, userName) => {
+                                        setRegisteredById(userId);
+                                        setRegisteredBy(userName);
+                                    }}
+                                    required={true}
+                                    label="Registrado por"
+                                />
+                                
                                 <button type="submit" className="btn-submit" disabled={units.length === 0}>
                                     Guardar Registro
                                 </button>
@@ -301,7 +347,7 @@ const StoragePage: React.FC<StoragePageProps> = ({ users, units, records, onAddU
                                     const isExpanded = expandedRecordId === record.id;
                                     const unit = unitsMap.get(record.unitId);
                                     const unitName = unit?.name || 'N/A';
-                                    const userName = usersMap.get(record.userId) || 'N/A';
+                                    const userName = record.registeredBy || usersMap.get(record.userId) || 'N/A';
                                     const formattedDate = new Date(record.dateTime).toLocaleString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
                                     
                                     const temp = parseFloat(record.temperature);
@@ -333,7 +379,7 @@ const StoragePage: React.FC<StoragePageProps> = ({ users, units, records, onAddU
                                                             {record.humidity && <div><strong>Humedad</strong><span>{record.humidity}%</span></div>}
                                                             <div><strong>Rotación OK</strong><span className={record.rotationCheck ? 'check-icon' : 'cross-icon'}>{record.rotationCheck ? '✓' : '✗'}</span></div>
                                                             <div><strong>Picado OK</strong><span className={record.mincingCheck ? 'check-icon' : 'cross-icon'}>{record.mincingCheck ? '✓' : '✗'}</span></div>
-                                                            <div><strong>Usuario</strong><span>{userName}</span></div>
+                                                            <div><strong>Registrado por</strong><span>{userName}</span></div>
                                                             <div className="detail-actions">
                                                                 <strong>Acciones</strong>
                                                                 <div>
@@ -357,6 +403,17 @@ const StoragePage: React.FC<StoragePageProps> = ({ users, units, records, onAddU
                     </div>
                 ) : <p>No hay registros para el rango de fechas seleccionado.</p>}
             </div>
+            
+            <ConfirmDialog
+                isOpen={showDeleteDialog}
+                title="Eliminar Registro"
+                message="¿Está seguro de que desea eliminar este registro de almacenamiento? Esta acción no se puede deshacer."
+                confirmText="Eliminar"
+                cancelText="Cancelar"
+                onConfirm={confirmDeleteRecord}
+                onCancel={cancelDeleteRecord}
+                type="danger"
+            />
         </>
     );
 };

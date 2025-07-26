@@ -7,8 +7,16 @@ import ForgotPassword from './ForgotPassword';
 import ResetPassword from './ResetPassword';
 import { NotificationProvider, useNotifications } from './NotificationContext';
 import NotificationContainer from './NotificationContainer';
+import { migrateExistingData, isMigrationNeeded } from './utils/dataMigration';
 
 // --- INTERFACES ---
+
+// Base interface para campos de trazabilidad
+export interface BaseRecord {
+  registeredBy: string; // Nombre del usuario que registró
+  registeredById: string; // ID del usuario que registró
+  registeredAt: string; // Fecha y hora del registro
+}
 export interface EstablishmentInfo {
     name: string; 
     address: string; 
@@ -29,8 +37,10 @@ export interface User {
   role: 'Administrador' | 'Usuario' | 'Solo Lectura';
   isActive: boolean;
   isAdmin?: boolean; // Mantener compatibilidad
+  companyId: string; // Nuevo campo para asociar usuarios a empresa
   createdAt?: string;
   updatedAt?: string;
+  createdBy?: string; // ID del usuario que creó este usuario
 }
 export interface Supplier {
   id: string; name: string;
@@ -38,25 +48,25 @@ export interface Supplier {
 export interface ProductType {
   id: string; name: string; optimalTemp: number;
 }
-export interface DeliveryRecord {
+export interface DeliveryRecord extends BaseRecord {
   id: string; // Mongo usa strings para los IDs
   supplierId: string; productTypeId: string; temperature: string; receptionDate: string; docsOk: boolean; userId: string; albaranImage?: string;
 }
 // ... resto de interfaces
 export interface StorageUnit { id: string; name: string; type: 'Cámara Frigorífica' | 'Cámara Expositora' | 'Cámara de secado'; minTemp?: number; maxTemp?: number; }
-export interface StorageRecord { id: string; unitId: string; dateTime: string; temperature: string; humidity?: string; rotationCheck: boolean; mincingCheck: boolean; userId: string; }
+export interface StorageRecord extends BaseRecord { id: string; unitId: string; dateTime: string; temperature: string; humidity?: string; rotationCheck: boolean; mincingCheck: boolean; userId: string; }
 export interface DailySurface { id: string; name: string; }
-export interface DailyCleaningRecord { id: string; surfaceId: string; dateTime: string; userId: string; }
+export interface DailyCleaningRecord extends BaseRecord { id: string; surfaceId: string; dateTime: string; userId: string; }
 export interface FrequentArea { id: string; name: string; frequencyDays: number; lastCleaned: string | null; }
 export interface CostingPart { id: string; name: string; weight: number; saleType: 'weight' | 'unit'; quantity?: number; }
 export interface Costing { id: string; productName: string; totalWeight: number; purchasePrice: number; parts: CostingPart[]; salePrices: { [partId: string]: string }; }
-export interface OutgoingRecord { id: string; productName: string; quantity: string; lotIdentifier: string; destinationType: 'sucursal' | 'consumidor'; destination: string; date: string; userId: string; }
-export interface ElaboratedRecord { id: string; productName: string; elaborationDate: string; productLot: string; ingredients: { name: string; supplier: string; lot: string; quantity: string; }[]; destination: string; quantitySent: string; userId: string; }
-export interface TechnicalSheet { id: string; productName: string; ingredients: Omit<Ingredient, 'id'>[]; elaboration: string; presentation: string; shelfLife: string; labeling: string; }
+export interface OutgoingRecord extends BaseRecord { id: string; productName: string; quantity: string; lotIdentifier: string; destinationType: 'sucursal' | 'consumidor'; destination: string; date: string; userId: string; }
+export interface ElaboratedRecord extends BaseRecord { id: string; productName: string; elaborationDate: string; productLot: string; ingredients: { name: string; supplier: string; lot: string; quantity: string; }[]; destination: string; quantitySent: string; userId: string; }
+export interface TechnicalSheet extends BaseRecord { id: string; productName: string; ingredients: Omit<Ingredient, 'id'>[]; elaboration: string; presentation: string; shelfLife: string; labeling: string; }
 export interface Ingredient { id: string; name: string; lot: string; isAllergen: boolean; }
 
 // --- NUEVAS INTERFACES PARA INCIDENCIAS ---
-export interface Incident {
+export interface Incident extends BaseRecord {
   id: string;
   title: string;
   description: string;
@@ -68,6 +78,9 @@ export interface Incident {
   createdAt: string; // ISO string
   updatedAt: string; // ISO string
   correctiveActions: CorrectiveAction[];
+  resolutionNotes?: string; // Notas de resolución
+  resolvedAt?: string; // Fecha de resolución
+  resolvedBy?: string; // Usuario que resolvió
 }
 
 export interface CorrectiveAction {
@@ -199,6 +212,12 @@ const AppContent: React.FC = () => {
                 setUsers(usersData);
                 setEstablishmentInfo(establishmentData);
                 setDeliveryRecords(deliveryData);
+
+                // Ejecutar migración de datos si es necesario
+                if (isMigrationNeeded()) {
+                    migrateExistingData();
+                    refreshUsers(); // Refrescar usuarios después de la migración
+                }
                 
             } catch (err) {
                 console.error(err);
@@ -332,6 +351,14 @@ const AppContent: React.FC = () => {
         success('Usuario eliminado', 'El usuario se ha eliminado correctamente.');
     } catch (error: any) {
         error('Error al eliminar usuario', error.message);
+    }
+  };
+
+  // Función para refrescar usuarios desde localStorage
+  const refreshUsers = () => {
+    const usersData = localStorage.getItem('users');
+    if (usersData) {
+      setUsers(JSON.parse(usersData));
     }
   };
   
@@ -629,6 +656,7 @@ const AppContent: React.FC = () => {
           onAddUser={handleAddUser}
           onDeleteUser={handleDeleteUser}
           onUpdateUser={handleUpdateUser}
+          onRefreshUsers={refreshUsers}
           deliveryRecords={deliveryRecords}
           onAddDeliveryRecord={handleAddDeliveryRecord}
           onDeleteDeliveryRecord={handleDeleteDeliveryRecord}
