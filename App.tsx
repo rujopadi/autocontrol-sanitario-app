@@ -304,11 +304,33 @@ const AppContent: React.FC = () => {
 
   const handleDeleteDeliveryRecord = async (id: string) => {
     try {
-        const response = await apiFetch(`/api/records/delivery/${id}`, { method: 'DELETE' });
-        if (!response.ok) throw new Error('Error al eliminar el registro.');
+        console.log('🗑️ Eliminando registro de recepción:', id);
+        
+        // Intentar eliminar via API primero
+        try {
+            const response = await apiFetch(`/api/records/delivery/${id}`, { method: 'DELETE' });
+            if (!response.ok) throw new Error('Error al eliminar el registro via API.');
+            console.log('✅ Eliminado via API');
+        } catch (apiError) {
+            console.log('⚠️ API falló, usando localStorage:', apiError);
+            
+            // Fallback a localStorage
+            const storedRecords = localStorage.getItem('deliveryRecords');
+            if (storedRecords) {
+                const records = JSON.parse(storedRecords);
+                const updatedRecords = records.filter((r: any) => r.id !== id);
+                localStorage.setItem('deliveryRecords', JSON.stringify(updatedRecords));
+                console.log('✅ Eliminado de localStorage');
+            }
+        }
+        
+        // Actualizar estado local
         setDeliveryRecords(prev => prev.filter(r => r.id !== id));
         success('Registro eliminado', 'El registro de recepción se ha eliminado correctamente.');
+        console.log('✅ Estado actualizado');
+        
     } catch (error: any) {
+        console.error('❌ Error al eliminar:', error);
         error('Error al eliminar', error.message);
     }
   };
@@ -435,8 +457,27 @@ const AppContent: React.FC = () => {
   };
 
   const handleDeleteStorageRecord = (id: string) => {
-    setStorageRecords(prev => prev.filter(r => r.id !== id));
-    success('Registro eliminado', 'El registro se ha eliminado correctamente.');
+    try {
+        console.log('🗑️ Eliminando registro de almacenamiento:', id);
+        
+        // Actualizar localStorage si existe
+        const storedRecords = localStorage.getItem('storageRecords');
+        if (storedRecords) {
+            const records = JSON.parse(storedRecords);
+            const updatedRecords = records.filter((r: any) => r.id !== id);
+            localStorage.setItem('storageRecords', JSON.stringify(updatedRecords));
+            console.log('✅ Eliminado de localStorage');
+        }
+        
+        // Actualizar estado local
+        setStorageRecords(prev => prev.filter(r => r.id !== id));
+        success('Registro eliminado', 'El registro se ha eliminado correctamente.');
+        console.log('✅ Estado actualizado');
+        
+    } catch (error: any) {
+        console.error('❌ Error al eliminar:', error);
+        error('Error al eliminar', error.message || 'No se pudo eliminar el registro.');
+    }
   };
 
   // Handlers para Daily Surfaces

@@ -506,7 +506,17 @@ const ReceptionPage: React.FC<ReceptionPageProps> = ({
                                                                         Imagen: {record.albaranImage ? 'SÍ' : 'NO'}
                                                                     </div>
                                                                     {record.albaranImage && <button className="btn-view-photo" onClick={() => setViewingImage(record.albaranImage!)}>Ver Foto Albarán</button>}
-                                                                    <button className="btn-delete" onClick={() => handleDeleteRecord(record.id)}>Eliminar</button>
+                                                                    <button
+                                                                        className="btn-delete"
+                                                                        onClick={(e) => {
+                                                                            e.preventDefault();
+                                                                            e.stopPropagation();
+                                                                            console.log('🖱️ Click en eliminar, ID:', record.id);
+                                                                            handleDeleteRecord(record.id);
+                                                                        }}
+                                                                    >
+                                                                        Eliminar
+                                                                    </button>
                                                                 </div>
                                                             </div>
                                                         </div>
@@ -530,6 +540,28 @@ const ReceptionPage: React.FC<ReceptionPageProps> = ({
                     </div>
                 </div>
             )}
+
+            {/* Botón de test temporal */}
+            <button
+                onClick={() => {
+                    console.log('🧪 Test: Abriendo diálogo');
+                    setShowDeleteDialog(true);
+                    setRecordToDelete('test-id');
+                }}
+                style={{
+                    position: 'fixed',
+                    top: '10px',
+                    right: '10px',
+                    background: 'red',
+                    color: 'white',
+                    padding: '10px',
+                    border: 'none',
+                    borderRadius: '4px',
+                    zIndex: 10000
+                }}
+            >
+                TEST DELETE
+            </button>
 
             <ConfirmDialog
                 isOpen={showDeleteDialog}
