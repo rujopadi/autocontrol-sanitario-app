@@ -21,6 +21,7 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   onCancel,
   type = 'danger'
 }) => {
+  console.log('🔍 ConfirmDialog render:', { isOpen, title });
   if (!isOpen) return null;
 
   const getTypeStyles = () => {
@@ -51,7 +52,7 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   const { headerClass, confirmClass } = getTypeStyles();
 
   return (
-    <div className="modal-backdrop" onClick={onCancel}>
+    <div className="modal-overlay" onClick={onCancel}>
       <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '400px' }}>
         <div className="modal-header">
           <h3 className={headerClass}>{title}</h3>
@@ -62,7 +63,7 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
         <div className="modal-footer">
           <button
             type="button"
-            className="btn-cancel"
+            className="btn-secondary"
             onClick={onCancel}
           >
             {cancelText}

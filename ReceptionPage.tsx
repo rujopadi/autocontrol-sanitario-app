@@ -181,14 +181,22 @@ const ReceptionPage: React.FC<ReceptionPageProps> = ({
     };
 
     const handleDeleteRecord = (id: string) => {
+        console.log('🗑️ Intentando eliminar registro:', id);
         setRecordToDelete(id);
         setShowDeleteDialog(true);
+        console.log('🗑️ Estado del diálogo:', true);
     };
 
     const confirmDeleteRecord = () => {
+        console.log('✅ Confirmando eliminación:', recordToDelete);
         if (recordToDelete) {
-            onDeleteRecord(recordToDelete);
-            success('Registro eliminado', 'El registro se ha eliminado correctamente.');
+            try {
+                onDeleteRecord(recordToDelete);
+                success('Registro eliminado', 'El registro se ha eliminado correctamente.');
+                console.log('✅ Registro eliminado exitosamente');
+            } catch (error) {
+                console.error('❌ Error al eliminar:', error);
+            }
         }
         setShowDeleteDialog(false);
         setRecordToDelete(null);
