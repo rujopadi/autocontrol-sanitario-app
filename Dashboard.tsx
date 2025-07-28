@@ -13,6 +13,7 @@ import HelpButton from './HelpButton';
 import HelpModal from './HelpModal';
 import SettingsPage from './SettingsPage'; // Import SettingsPage
 import IncidentsPage from './IncidentsPage'; // Import IncidentsPage
+import UserProfilePage from './UserProfilePage'; // Import UserProfilePage
 import { User, Supplier, ProductType, DeliveryRecord, StorageUnit, StorageRecord, DailySurface, DailyCleaningRecord, FrequentArea, Costing, OutgoingRecord, ElaboratedRecord, TechnicalSheet, EstablishmentInfo, Incident, CorrectiveAction, IncidentFormData, CorrectiveActionFormData } from './App';
 
 // --- PROPS INTERFACE ---
@@ -390,6 +391,17 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
           onDeleteCorrectiveAction={props.onDeleteCorrectiveAction}
           establishmentInfo={props.establishmentInfo}
           currentUser={props.currentUser}
+        />;
+      case 'Mi Perfil':
+        return <UserProfilePage 
+          currentUser={props.currentUser}
+          users={props.users}
+          establishmentInfo={props.establishmentInfo}
+          onUpdateUser={props.onUpdateUser}
+          onUpdateEstablishmentInfo={props.onUpdateEstablishmentInfo}
+          onAddUser={props.onAddUser}
+          onDeleteUser={props.onDeleteUser}
+          onRefreshUsers={props.onRefreshUsers}
         />;
       case 'Usuarios':
         return isCurrentUserAdmin ? <UsersPage users={props.users} onAddUser={props.onAddUser} onDeleteUser={props.onDeleteUser} onUpdateUser={props.onUpdateUser} currentUser={props.currentUser} onRefreshUsers={props.onRefreshUsers} /> : <h1>Acceso Denegado</h1>;

@@ -148,23 +148,25 @@ const UsersPage: React.FC<UsersPageProps> = ({ users, onAddUser, onDeleteUser, o
   };
 
   // Nueva función para crear usuarios colaboradores
-  const handleCreateCollaborator = (e: React.FormEvent) => {
+  const handleCreateCollaborator = async (e: React.FormEvent) => {
     e.preventDefault();
     
     const collaboratorData = { 
       name: name.trim(), 
       email: email.trim(), 
-      password 
+      password,
+      role: 'Usuario' as UserRole,
+      isActive: true
     };
     
-    if (!validateForm({...collaboratorData, role: 'Usuario', isActive: true})) {
+    if (!validateForm(collaboratorData)) {
       warning('Errores de validación', 'Por favor, corrija los errores en el formulario.');
       return;
     }
 
     try {
-      createCollaboratorUser(collaboratorData, currentUser);
-      onRefreshUsers(); // Refrescar la lista de usuarios
+      // Usar la función onAddUser existente que maneja las API calls
+      await onAddUser(collaboratorData);
       
       // Reset form
       setName('');

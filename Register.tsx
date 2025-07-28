@@ -11,12 +11,17 @@ const Register: React.FC<RegisterProps> = ({ onRegister, onSwitchToLogin }) => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const { warning } = useNotifications();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim() || !email.trim() || !password.trim()) {
         warning('Campos requeridos', 'Por favor, complete todos los campos.');
+        return;
+    }
+    if (!acceptedTerms) {
+        warning('Términos y condiciones', 'Debe aceptar los términos y condiciones para continuar.');
         return;
     }
     onRegister({ name: name.trim(), email: email.trim(), password });
@@ -63,7 +68,55 @@ const Register: React.FC<RegisterProps> = ({ onRegister, onSwitchToLogin }) => {
             autoComplete="new-password"
           />
         </div>
-        <button type="submit" className="btn-login">
+        
+        {/* Términos y condiciones */}
+        <div className="terms-section">
+          <div className="terms-checkbox">
+            <input 
+              type="checkbox" 
+              id="accept-terms" 
+              checked={acceptedTerms}
+              onChange={(e) => setAcceptedTerms(e.target.checked)}
+              required
+            />
+            <label htmlFor="accept-terms">
+              Acepto los términos y condiciones de uso
+            </label>
+          </div>
+          
+          <div className="legal-text">
+            <h4>Política de Privacidad y Protección de Datos</h4>
+            <p>
+              <strong>Autocontrol Pro</strong> se compromete a proteger su privacidad y datos personales:
+            </p>
+            <ul>
+              <li>✓ <strong>No vendemos sus datos</strong> a terceros bajo ninguna circunstancia</li>
+              <li>✓ <strong>No compartimos información</strong> con empresas externas sin su consentimiento</li>
+              <li>✓ Sus datos se utilizan <strong>únicamente</strong> para el funcionamiento del sistema de autocontrol</li>
+              <li>✓ <strong>Aislamiento total</strong> entre empresas - cada empresa ve solo sus datos</li>
+              <li>✓ <strong>Cifrado y seguridad</strong> en todas las comunicaciones y almacenamiento</li>
+              <li>✓ <strong>Derecho de eliminación</strong> - puede solicitar la eliminación de sus datos en cualquier momento</li>
+            </ul>
+            
+            <p>
+              <strong>Uso del Sistema:</strong> Al registrarse, usted acepta utilizar este sistema únicamente para 
+              fines de control sanitario y cumplimiento normativo. Los datos introducidos deben ser veraces y 
+              actualizados.
+            </p>
+            
+            <p>
+              <strong>Soporte:</strong> Para cualquier consulta sobre privacidad o funcionamiento del sistema, 
+              puede contactarnos a través del sistema de ayuda integrado.
+            </p>
+            
+            <p className="legal-note">
+              Al marcar esta casilla, confirma que ha leído y acepta estos términos, y que es mayor de edad 
+              y tiene autoridad para registrar su empresa en este sistema.
+            </p>
+          </div>
+        </div>
+        
+        <button type="submit" className="btn-login" disabled={!acceptedTerms}>
           Registrar y Entrar
         </button>
         <div className="auth-switch-link">
