@@ -1,7 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
-import { Costing, CostingPart } from './App';
+import { Costing, CostingPart, User, EstablishmentInfo } from './App';
 import { useNotifications } from './NotificationContext';
+import UserSelector from './components/UserSelector';
 
 // Type for the form state for both creating and editing
 type CostingFormState = {
@@ -20,10 +21,12 @@ type CostingFormState = {
 interface EscandallosPageProps {
     costings: Costing[];
     onSetCostings: (costings: Costing[] | ((prevState: Costing[]) => Costing[])) => void;
+    users: User[];
+    establishmentInfo: EstablishmentInfo;
 }
 
-const EscandallosPage: React.FC<EscandallosPageProps> = ({ costings, onSetCostings }) => {
-    const { warning } = useNotifications();
+const EscandallosPage: React.FC<EscandallosPageProps> = ({ costings, onSetCostings, users, establishmentInfo }) => {
+    const { warning, success } = useNotifications();
 
     // --- STATE MANAGEMENT ---
     const [isCreateFormOpen, setIsCreateFormOpen] = useState(true);
@@ -45,6 +48,13 @@ const EscandallosPage: React.FC<EscandallosPageProps> = ({ costings, onSetCostin
             setExpandedCostingId(costings.length > 0 ? costings[0].id : null);
         }
     }, [costings, expandedCostingId]);
+
+    // Estados para trazabilidad
+    const [registeredById, setRegisteredById] = useState('');
+    const [registeredBy, setRegisteredBy] = useState('');
+
+    // Obtener usuarios de la empresa
+    const companyUsers = users.filter(user => user.companyId === establishmentInfo.id);
 
     // --- FORM HANDLERS (CREATE) ---
     const handleCreatePartChange = (index: number, field: keyof CostingFormState['parts'][0], value: any) => {
@@ -86,12 +96,21 @@ const EscandallosPage: React.FC<EscandallosPageProps> = ({ costings, onSetCostin
                 saleType: p.saleType,
                 quantity: p.saleType === 'unit' ? parseInt(p.quantity, 10) : undefined
             })),
-            salePrices: {}
+            salePrices: {},
+            registeredBy,
+            registeredById,
+            registeredAt: new Date().toISOString()
         };
 
         onSetCostings(prev => [newCosting, ...prev]);
+        
+        // Mostrar notificación de éxito
+        success('Registro guardado correctamente', 'El escandallo se ha guardado exitosamente.');
+        
         setExpandedCostingId(newCosting.id); // Expand the new one
         setCreateForm({ productName: '', totalWeight: '', pricePerKg: '', parts: [{ name: '', weight: '', saleType: 'weight', quantity: '' }] });
+        setRegisteredBy('');
+        setRegisteredById('');
     };
 
     // --- FORM HANDLERS (EDIT) ---

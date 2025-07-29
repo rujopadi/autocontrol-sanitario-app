@@ -51,9 +51,7 @@ const StoragePage: React.FC<StoragePageProps> = ({ users, units, records, onAddU
     // Obtener usuarios de la empresa
     const companyUsers = useMemo(() => getCompanyUsers(currentUser), [currentUser]);
     
-    // Estado para el diálogo de confirmación
-    const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-    const [recordToDelete, setRecordToDelete] = useState<string | null>(null);
+
     
     // State for filtering
     const [startDate, setStartDate] = useState('');
@@ -140,22 +138,14 @@ const StoragePage: React.FC<StoragePageProps> = ({ users, units, records, onAddU
     };
     
     const handleDeleteRecord = (recordId: string) => {
-        setRecordToDelete(recordId);
-        setShowDeleteDialog(true);
-    };
-
-    const confirmDeleteRecord = () => {
-        if (recordToDelete) {
-            onDeleteRecord(recordToDelete);
-            success('Registro eliminado', 'El registro se ha eliminado correctamente.');
+        if (window.confirm('¿Está seguro de que desea eliminar este registro? Esta acción no se puede deshacer.')) {
+            try {
+                onDeleteRecord(recordId);
+                success('Registro eliminado', 'El registro se ha eliminado correctamente.');
+            } catch (error) {
+                console.error('Error al eliminar:', error);
+            }
         }
-        setShowDeleteDialog(false);
-        setRecordToDelete(null);
-    };
-
-    const cancelDeleteRecord = () => {
-        setShowDeleteDialog(false);
-        setRecordToDelete(null);
     };
 
     const handleExportPDF = () => {

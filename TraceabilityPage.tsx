@@ -3,6 +3,7 @@ import React, { useState, useMemo } from 'react';
 import { exportToPDF, exportToExcel } from './exportUtils';
 import { User, OutgoingRecord, ElaboratedRecord, EstablishmentInfo } from './App';
 import { useNotifications } from './NotificationContext';
+import UserSelector from './components/UserSelector';
 
 // --- Estados de Formulario ---
 type OutgoingFormState = {
@@ -48,7 +49,7 @@ const TraceabilityPage: React.FC<TraceabilityPageProps> = ({
     onAddOutgoingRecord, onDeleteOutgoing, onAddElaboratedRecord, onDeleteElaborated,
     establishmentInfo
 }) => {
-    const { warning } = useNotifications();
+    const { warning, success } = useNotifications();
     const usersMap = useMemo(() => new Map(users.map(u => [u.id, u.name])), [users]);
 
     // Estados colapsables
@@ -70,6 +71,13 @@ const TraceabilityPage: React.FC<TraceabilityPageProps> = ({
     });
     const [elaboratedStartDate, setElaboratedStartDate] = useState('');
     const [elaboratedEndDate, setElaboratedEndDate] = useState('');
+
+    // Estados para trazabilidad
+    const [registeredById, setRegisteredById] = useState('');
+    const [registeredBy, setRegisteredBy] = useState('');
+
+    // Obtener usuarios de la empresa
+    const companyUsers = users.filter(user => user.companyId === establishmentInfo.id);
 
 
     // --- Lógica de Filtrado ---
@@ -103,10 +111,19 @@ const TraceabilityPage: React.FC<TraceabilityPageProps> = ({
         }
         onAddOutgoingRecord({
             ...outgoingForm,
-            userId: outgoingForm.userId
+            userId: outgoingForm.userId,
+            registeredBy,
+            registeredById,
+            registeredAt: new Date().toISOString()
         });
+
+        // Mostrar notificación de éxito
+        success('Registro guardado correctamente', 'El registro de salida se ha guardado exitosamente.');
+
         // Resetear formulario
         setOutgoingForm({ productName: '', quantity: '', lotIdentifier: '', destinationType: 'consumidor', destination: '', date: new Date().toISOString().slice(0,10), userId: outgoingForm.userId });
+        setRegisteredBy('');
+        setRegisteredById('');
     };
 
     const handleOutgoingChange = (field: keyof OutgoingFormState, value: any) => {
@@ -161,10 +178,19 @@ const TraceabilityPage: React.FC<TraceabilityPageProps> = ({
             ingredients: elaboratedForm.ingredients,
             destination: elaboratedForm.destination,
             quantitySent: elaboratedForm.quantitySent,
-            userId: elaboratedForm.userId
+            userId: elaboratedForm.userId,
+            registeredBy,
+            registeredById,
+            registeredAt: new Date().toISOString()
         });
+
+        // Mostrar notificación de éxito
+        success('Registro guardado correctamente', 'El registro de elaboración se ha guardado exitosamente.');
+
         // Resetear formulario
         setElaboratedForm({ productName: '', elaborationDate: new Date().toISOString().slice(0,10), ingredients: [{name: '', supplier: '', lot: '', quantity: ''}], productLot: '', destination: '', quantitySent: '', userId: elaboratedForm.userId });
+        setRegisteredBy('');
+        setRegisteredById('');
     };
 
     const handleElaboratedChange = (field: keyof Omit<ElaboratedFormState, 'ingredients'>, value: any) => {

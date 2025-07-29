@@ -4,7 +4,7 @@ import { exportToPDF, exportToExcel } from './exportUtils';
 import { User, Supplier, ProductType, DeliveryRecord, EstablishmentInfo } from './App';
 import { useNotifications } from './NotificationContext';
 import UserSelector from './components/UserSelector';
-import ConfirmDialog from './components/ConfirmDialog';
+
 import { getCompanyUsers } from './utils/dataMigration';
 
 interface ReceptionPageProps {
@@ -59,9 +59,7 @@ const ReceptionPage: React.FC<ReceptionPageProps> = ({
     // Obtener usuarios de la empresa
     const companyUsers = useMemo(() => getCompanyUsers(currentUser), [currentUser]);
 
-    // Estado para el diálogo de confirmación
-    const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-    const [recordToDelete, setRecordToDelete] = useState<string | null>(null);
+
 
 
     // Derived data for display
@@ -181,30 +179,14 @@ const ReceptionPage: React.FC<ReceptionPageProps> = ({
     };
 
     const handleDeleteRecord = (id: string) => {
-        console.log('🗑️ Intentando eliminar registro:', id);
-        setRecordToDelete(id);
-        setShowDeleteDialog(true);
-        console.log('🗑️ Estado del diálogo:', true);
-    };
-
-    const confirmDeleteRecord = () => {
-        console.log('✅ Confirmando eliminación:', recordToDelete);
-        if (recordToDelete) {
+        if (window.confirm('¿Está seguro de que desea eliminar este registro? Esta acción no se puede deshacer.')) {
             try {
-                onDeleteRecord(recordToDelete);
+                onDeleteRecord(id);
                 success('Registro eliminado', 'El registro se ha eliminado correctamente.');
-                console.log('✅ Registro eliminado exitosamente');
             } catch (error) {
-                console.error('❌ Error al eliminar:', error);
+                console.error('Error al eliminar:', error);
             }
         }
-        setShowDeleteDialog(false);
-        setRecordToDelete(null);
-    };
-
-    const cancelDeleteRecord = () => {
-        setShowDeleteDialog(false);
-        setRecordToDelete(null);
     };
 
     const handleImageCapture = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -506,15 +488,7 @@ const ReceptionPage: React.FC<ReceptionPageProps> = ({
                                                                         Imagen: {record.albaranImage ? 'SÍ' : 'NO'}
                                                                     </div>
                                                                     {record.albaranImage && <button className="btn-view-photo" onClick={() => setViewingImage(record.albaranImage!)}>Ver Foto Albarán</button>}
-                                                                    <button
-                                                                        className="btn-delete"
-                                                                        onClick={(e) => {
-                                                                            e.preventDefault();
-                                                                            e.stopPropagation();
-                                                                            console.log('🖱️ Click en eliminar, ID:', record.id);
-                                                                            handleDeleteRecord(record.id);
-                                                                        }}
-                                                                    >
+                                                                    <button className="btn-delete" onClick={() => handleDeleteRecord(record.id)}>
                                                                         Eliminar
                                                                     </button>
                                                                 </div>
@@ -543,36 +517,7 @@ const ReceptionPage: React.FC<ReceptionPageProps> = ({
 
             {/* Botón de test temporal */}
             <button
-                onClick={() => {
-                    console.log('🧪 Test: Abriendo diálogo');
-                    setShowDeleteDialog(true);
-                    setRecordToDelete('test-id');
-                }}
-                style={{
-                    position: 'fixed',
-                    top: '10px',
-                    right: '10px',
-                    background: 'red',
-                    color: 'white',
-                    padding: '10px',
-                    border: 'none',
-                    borderRadius: '4px',
-                    zIndex: 10000
-                }}
-            >
-                TEST DELETE
-            </button>
 
-            <ConfirmDialog
-                isOpen={showDeleteDialog}
-                title="Eliminar Registro"
-                message="¿Está seguro de que desea eliminar este registro de recepción? Esta acción no se puede deshacer."
-                confirmText="Eliminar"
-                cancelText="Cancelar"
-                onConfirm={confirmDeleteRecord}
-                onCancel={cancelDeleteRecord}
-                type="danger"
-            />
         </>
     );
 };
