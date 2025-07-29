@@ -515,9 +515,6 @@ const ReceptionPage: React.FC<ReceptionPageProps> = ({
                 </div>
             )}
 
-            {/* Botón de test temporal */}
-            <button
-
         </>
     );
 };
