@@ -4,7 +4,6 @@ import { exportToPDF, exportToExcel } from './exportUtils';
 import { User, StorageUnit, StorageRecord, EstablishmentInfo } from './App';
 import { useNotifications } from './NotificationContext';
 import UserSelector from './components/UserSelector';
-import ConfirmDialog from './components/ConfirmDialog';
 import { getCompanyUsers } from './utils/dataMigration';
 
 
@@ -410,16 +409,7 @@ const StoragePage: React.FC<StoragePageProps> = ({ users, units, records, onAddU
                 ) : <p>No hay registros para el rango de fechas seleccionado.</p>}
             </div>
             
-            <ConfirmDialog
-                isOpen={showDeleteDialog}
-                title="Eliminar Registro"
-                message="¿Está seguro de que desea eliminar este registro de almacenamiento? Esta acción no se puede deshacer."
-                confirmText="Eliminar"
-                cancelText="Cancelar"
-                onConfirm={confirmDeleteRecord}
-                onCancel={cancelDeleteRecord}
-                type="danger"
-            />
+
         </>
     );
 };
