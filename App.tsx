@@ -305,6 +305,8 @@ const AppContent: React.FC = () => {
   const handleDeleteDeliveryRecord = async (id: string) => {
     try {
         console.log('🗑️ Eliminando registro de recepción:', id);
+        console.log('📊 Registros antes de eliminar:', deliveryRecords.length);
+        console.log('📋 IDs actuales:', deliveryRecords.map(r => r.id));
         
         // Intentar eliminar via API primero
         try {
@@ -318,20 +320,27 @@ const AppContent: React.FC = () => {
             const storedRecords = localStorage.getItem('deliveryRecords');
             if (storedRecords) {
                 const records = JSON.parse(storedRecords);
+                console.log('📊 Registros en localStorage antes:', records.length);
                 const updatedRecords = records.filter((r: any) => r.id !== id);
+                console.log('📊 Registros en localStorage después:', updatedRecords.length);
                 localStorage.setItem('deliveryRecords', JSON.stringify(updatedRecords));
                 console.log('✅ Eliminado de localStorage');
             }
         }
         
         // Actualizar estado local
-        setDeliveryRecords(prev => prev.filter(r => r.id !== id));
+        console.log('🔄 Actualizando estado local...');
+        setDeliveryRecords(prev => {
+            const filtered = prev.filter(r => r.id !== id);
+            console.log('📊 Registros después del filtro:', filtered.length);
+            return filtered;
+        });
         success('Registro eliminado', 'El registro de recepción se ha eliminado correctamente.');
         console.log('✅ Estado actualizado');
         
-    } catch (error: any) {
-        console.error('❌ Error al eliminar:', error);
-        error('Error al eliminar', error.message);
+    } catch (err: any) {
+        console.error('❌ Error al eliminar:', err);
+        error('Error al eliminar', err.message);
     }
   };
   

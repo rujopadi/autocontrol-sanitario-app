@@ -179,6 +179,9 @@ const ReceptionPage: React.FC<ReceptionPageProps> = ({
     };
 
     const handleDeleteRecord = (id: string) => {
+        console.log('🎯 ReceptionPage: Intentando eliminar registro con ID:', id);
+        console.log('📋 Todos los registros disponibles:', records.map(r => ({ id: r.id, date: r.receptionDate })));
+
         if (window.confirm('¿Está seguro de que desea eliminar este registro? Esta acción no se puede deshacer.')) {
             try {
                 onDeleteRecord(id);
