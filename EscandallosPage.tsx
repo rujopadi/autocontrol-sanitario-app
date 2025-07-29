@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Costing, CostingPart, User, EstablishmentInfo } from './App';
 import { useNotifications } from './NotificationContext';
 import UserSelector from './components/UserSelector';
@@ -23,9 +23,10 @@ interface EscandallosPageProps {
     onSetCostings: (costings: Costing[] | ((prevState: Costing[]) => Costing[])) => void;
     users: User[];
     establishmentInfo: EstablishmentInfo;
+    currentUser: User;
 }
 
-const EscandallosPage: React.FC<EscandallosPageProps> = ({ costings, onSetCostings, users, establishmentInfo }) => {
+const EscandallosPage: React.FC<EscandallosPageProps> = ({ costings, onSetCostings, users, establishmentInfo, currentUser }) => {
     const { warning, success } = useNotifications();
 
     // --- STATE MANAGEMENT ---
@@ -54,7 +55,9 @@ const EscandallosPage: React.FC<EscandallosPageProps> = ({ costings, onSetCostin
     const [registeredBy, setRegisteredBy] = useState('');
 
     // Obtener usuarios de la empresa
-    const companyUsers = users.filter(user => user.companyId === establishmentInfo.id);
+    const companyUsers = useMemo(() => {
+        return users.filter(user => user.companyId === currentUser.companyId && user.isActive);
+    }, [users, currentUser.companyId]);
 
     // --- FORM HANDLERS (CREATE) ---
     const handleCreatePartChange = (index: number, field: keyof CostingFormState['parts'][0], value: any) => {
@@ -271,6 +274,18 @@ const EscandallosPage: React.FC<EscandallosPageProps> = ({ costings, onSetCostin
                                     </div>
                                 ))}
                                 <button type="button" className="btn-add-part" onClick={handleAddCreatePart}>+ Añadir Otra Parte</button>
+
+                                <UserSelector
+                                    users={companyUsers}
+                                    selectedUserId={registeredById}
+                                    selectedUserName={registeredBy}
+                                    onUserSelect={(userId, userName) => {
+                                        setRegisteredById(userId);
+                                        setRegisteredBy(userName);
+                                    }}
+                                    required={true}
+                                    label="Registrado por"
+                                />
 
                                 <button type="submit" className="btn-submit">Crear Escandallo</button>
                             </form>

@@ -378,6 +378,9 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
         return <EscandallosPage 
             costings={props.costings}
             onSetCostings={props.onSetCostings}
+            users={props.users}
+            establishmentInfo={props.establishmentInfo}
+            currentUser={props.currentUser}
         />;
       case 'Incidencias':
         return <IncidentsPage 

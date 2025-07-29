@@ -49,7 +49,9 @@ const StoragePage: React.FC<StoragePageProps> = ({ users, units, records, onAddU
     const [registeredBy, setRegisteredBy] = useState('');
     
     // Obtener usuarios de la empresa
-    const companyUsers = useMemo(() => getCompanyUsers(currentUser), [currentUser]);
+    const companyUsers = useMemo(() => {
+        return users.filter(user => user.companyId === currentUser.companyId && user.isActive);
+    }, [users, currentUser.companyId]);
     
 
     
