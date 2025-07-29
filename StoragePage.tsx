@@ -85,20 +85,24 @@ const StoragePage: React.FC<StoragePageProps> = ({ users, units, records, onAddU
     // Handlers
     const handleAddUnit = (e: React.FormEvent) => {
         e.preventDefault();
+        console.log('🏭 Intentando crear unidad:', newUnitName.trim());
         if (!newUnitName.trim()) {
             warning('Campo requerido', 'El nombre de la cámara no puede estar vacío.');
             return;
         }
-        onAddUnit({
+        const unitData = {
             name: newUnitName.trim(),
             type: newUnitType,
             minTemp: newUnitMinTemp !== '' ? parseFloat(newUnitMinTemp) : undefined,
             maxTemp: newUnitMaxTemp !== '' ? parseFloat(newUnitMaxTemp) : undefined,
-        });
+        };
+        console.log('📦 Datos de la unidad:', unitData);
+        onAddUnit(unitData);
         setNewUnitName('');
         setNewUnitMinTemp('');
         setNewUnitMaxTemp('');
         success('Cámara añadida', `La cámara "${newUnitName.trim()}" se ha añadido correctamente.`);
+        console.log('✅ Unidad creada exitosamente');
     };
 
     const handleDeleteUnit = (unitId: string) => {
@@ -109,6 +113,12 @@ const StoragePage: React.FC<StoragePageProps> = ({ users, units, records, onAddU
 
     const handleAddRecord = (e: React.FormEvent) => {
         e.preventDefault();
+        console.log('📊 Intentando crear registro de almacenamiento');
+        console.log('🏭 Unidad seleccionada:', recordUnit);
+        console.log('🌡️ Temperatura:', recordTemp);
+        console.log('👤 Registrado por:', registeredBy, registeredById);
+        console.log('📋 Usuarios disponibles:', companyUsers.length);
+        
         if (!recordUnit || !recordTemp.trim() || !registeredBy) {
             warning('Campos requeridos', 'Por favor, complete todos los campos del registro incluyendo quién lo registra.');
             return;
@@ -117,7 +127,8 @@ const StoragePage: React.FC<StoragePageProps> = ({ users, units, records, onAddU
             warning('Campo requerido', 'Por favor, introduzca el valor de la humedad para la cámara de secado.');
             return;
         }
-        onAddRecord({
+        
+        const recordData = {
             unitId: recordUnit,
             dateTime: new Date(recordDateTime).toISOString(),
             temperature: recordTemp,
@@ -127,7 +138,10 @@ const StoragePage: React.FC<StoragePageProps> = ({ users, units, records, onAddU
             registeredById,
             registeredAt: new Date().toISOString(),
             ...(selectedUnitForRecord?.type === 'Cámara de secado' && { humidity: recordHumidity })
-        });
+        };
+        
+        console.log('📦 Datos del registro:', recordData);
+        onAddRecord(recordData);
 
         // Reset form
         setRecordTemp('');
