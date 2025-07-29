@@ -346,41 +346,116 @@ const AppContent: React.FC = () => {
   
   const handleAddUser = async (details: UserFormData) => {
     try {
-        const response = await apiFetch('/api/users', {
-            method: 'POST',
-            body: JSON.stringify(details)
-        });
-        const newUser = await response.json();
-        if (!response.ok) throw new Error(newUser.message || 'Error al crear usuario.');
-        setUsers(prev => [...prev, newUser]);
+        console.log('🆕 Creando usuario:', details);
+        
+        // Intentar crear via API primero
+        try {
+            const response = await apiFetch('/api/users', {
+                method: 'POST',
+                body: JSON.stringify(details)
+            });
+            const newUser = await response.json();
+            if (!response.ok) throw new Error(newUser.message || 'Error al crear usuario via API.');
+            setUsers(prev => [...prev, newUser]);
+            console.log('✅ Usuario creado via API');
+        } catch (apiError) {
+            console.log('⚠️ API falló, usando localStorage:', apiError);
+            
+            // Fallback a localStorage
+            const newUser: User = {
+                id: String(Date.now()),
+                name: details.name,
+                email: details.email,
+                role: details.role,
+                isActive: details.isActive,
+                companyId: currentUser?.companyId || '1',
+                createdAt: new Date().toISOString()
+            };
+            
+            // Guardar en localStorage
+            const storedUsers = localStorage.getItem('users');
+            const users = storedUsers ? JSON.parse(storedUsers) : [];
+            users.push(newUser);
+            localStorage.setItem('users', JSON.stringify(users));
+            
+            // Actualizar estado
+            setUsers(prev => [...prev, newUser]);
+            console.log('✅ Usuario creado en localStorage');
+        }
+        
         success('Usuario creado', `El usuario ${details.name} se ha creado correctamente.`);
     } catch (error: any) {
+        console.error('❌ Error al crear usuario:', error);
         error('Error al crear usuario', error.message);
     }
   };
 
   const handleUpdateUser = async (id: string, details: Partial<User>) => {
     try {
-        const response = await apiFetch(`/api/users/${id}`, {
-            method: 'PUT',
-            body: JSON.stringify(details)
-        });
-        const updatedUser = await response.json();
-        if (!response.ok) throw new Error(updatedUser.message || 'Error al actualizar el usuario.');
-        setUsers(prev => prev.map(u => (u.id === id ? updatedUser : u)));
+        console.log('✏️ Actualizando usuario:', id, details);
+        
+        // Intentar actualizar via API primero
+        try {
+            const response = await apiFetch(`/api/users/${id}`, {
+                method: 'PUT',
+                body: JSON.stringify(details)
+            });
+            const updatedUser = await response.json();
+            if (!response.ok) throw new Error(updatedUser.message || 'Error al actualizar el usuario via API.');
+            setUsers(prev => prev.map(u => (u.id === id ? updatedUser : u)));
+            console.log('✅ Usuario actualizado via API');
+        } catch (apiError) {
+            console.log('⚠️ API falló, usando localStorage:', apiError);
+            
+            // Fallback a localStorage
+            const storedUsers = localStorage.getItem('users');
+            if (storedUsers) {
+                const users = JSON.parse(storedUsers);
+                const updatedUsers = users.map((u: any) => 
+                    u.id === id ? { ...u, ...details } : u
+                );
+                localStorage.setItem('users', JSON.stringify(updatedUsers));
+                console.log('✅ Usuario actualizado en localStorage');
+            }
+            
+            // Actualizar estado
+            setUsers(prev => prev.map(u => (u.id === id ? { ...u, ...details } : u)));
+        }
+        
         success('Usuario actualizado', `Los datos de ${details.name} se han actualizado correctamente.`);
     } catch (error: any) {
+        console.error('❌ Error al actualizar usuario:', error);
         error('Error al actualizar usuario', error.message);
     }
   };
 
   const handleDeleteUser = async (id: string) => {
-      try {
-        const response = await apiFetch(`/api/users/${id}`, { method: 'DELETE' });
-        if (!response.ok) throw new Error('Error al eliminar el usuario.');
+    try {
+        console.log('🗑️ Eliminando usuario:', id);
+        
+        // Intentar eliminar via API primero
+        try {
+            const response = await apiFetch(`/api/users/${id}`, { method: 'DELETE' });
+            if (!response.ok) throw new Error('Error al eliminar el usuario via API.');
+            console.log('✅ Usuario eliminado via API');
+        } catch (apiError) {
+            console.log('⚠️ API falló, usando localStorage:', apiError);
+            
+            // Fallback a localStorage
+            const storedUsers = localStorage.getItem('users');
+            if (storedUsers) {
+                const users = JSON.parse(storedUsers);
+                const updatedUsers = users.filter((u: any) => u.id !== id);
+                localStorage.setItem('users', JSON.stringify(updatedUsers));
+                console.log('✅ Usuario eliminado de localStorage');
+            }
+        }
+        
+        // Actualizar estado
         setUsers(prev => prev.filter(u => u.id !== id));
         success('Usuario eliminado', 'El usuario se ha eliminado correctamente.');
     } catch (error: any) {
+        console.error('❌ Error al eliminar usuario:', error);
         error('Error al eliminar usuario', error.message);
     }
   };

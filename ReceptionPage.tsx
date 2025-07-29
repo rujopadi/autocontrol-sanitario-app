@@ -5,7 +5,6 @@ import { User, Supplier, ProductType, DeliveryRecord, EstablishmentInfo } from '
 import { useNotifications } from './NotificationContext';
 import UserSelector from './components/UserSelector';
 
-import { getCompanyUsers } from './utils/dataMigration';
 
 interface ReceptionPageProps {
     users: User[];
@@ -57,7 +56,9 @@ const ReceptionPage: React.FC<ReceptionPageProps> = ({
     const [registeredBy, setRegisteredBy] = useState('');
 
     // Obtener usuarios de la empresa
-    const companyUsers = useMemo(() => getCompanyUsers(currentUser), [currentUser]);
+    const companyUsers = useMemo(() => {
+        return users.filter(user => user.companyId === currentUser.companyId && user.isActive);
+    }, [users, currentUser.companyId]);
 
 
 
