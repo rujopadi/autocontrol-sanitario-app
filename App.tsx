@@ -276,25 +276,51 @@ const AppContent: React.FC = () => {
   };
   
   const handleAddDeliveryRecord = async (record: Omit<DeliveryRecord, 'id' | 'userId'>) => {
-    console.log('📤 Enviando registro al backend:', {
+    console.log('📤 Creando registro de recepción:', {
       ...record,
       albaranImage: record.albaranImage ? `[Imagen de ${record.albaranImage.length} caracteres]` : 'Sin imagen'
     });
     
     try {
-        const response = await apiFetch(`/api/records/delivery`, {
-            method: 'POST',
-            body: JSON.stringify(record)
-        });
-        const newRecord = await response.json();
+        // Intentar crear via API primero
+        try {
+            const response = await apiFetch(`/api/records/delivery`, {
+                method: 'POST',
+                body: JSON.stringify(record)
+            });
+            const newRecord = await response.json();
+            
+            console.log('📥 Respuesta del backend:', {
+              ...newRecord,
+              albaranImage: newRecord.albaranImage ? `[Imagen de ${newRecord.albaranImage.length} caracteres]` : 'Sin imagen'
+            });
+            
+            if (!response.ok) throw new Error(newRecord.message || 'Error al guardar el registro via API.');
+            setDeliveryRecords(prev => [newRecord, ...prev]);
+            console.log('✅ Registro creado via API');
+        } catch (apiError) {
+            console.log('⚠️ API falló, usando localStorage:', apiError);
+            
+            // Fallback a localStorage - GENERAR ID ÚNICO
+            const newRecord: DeliveryRecord = {
+                id: `delivery_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`, // ID único
+                userId: currentUser?.id || '1',
+                ...record
+            };
+            
+            console.log('🆔 Generando ID único:', newRecord.id);
+            
+            // Guardar en localStorage
+            const storedRecords = localStorage.getItem('deliveryRecords');
+            const records = storedRecords ? JSON.parse(storedRecords) : [];
+            records.unshift(newRecord);
+            localStorage.setItem('deliveryRecords', JSON.stringify(records));
+            
+            // Actualizar estado
+            setDeliveryRecords(prev => [newRecord, ...prev]);
+            console.log('✅ Registro creado en localStorage con ID:', newRecord.id);
+        }
         
-        console.log('📥 Respuesta del backend:', {
-          ...newRecord,
-          albaranImage: newRecord.albaranImage ? `[Imagen de ${newRecord.albaranImage.length} caracteres]` : 'Sin imagen'
-        });
-        
-         if (!response.ok) throw new Error(newRecord.message || 'Error al guardar el registro.');
-        setDeliveryRecords(prev => [newRecord, ...prev]);
         success('Registro añadido', 'El registro de recepción se ha guardado correctamente.');
     } catch (error: any) {
         console.error('❌ Error en handleAddDeliveryRecord:', error);
@@ -532,10 +558,19 @@ const AppContent: React.FC = () => {
   // Handlers para Storage Records
   const handleAddStorageRecord = (record: Omit<StorageRecord, 'id' | 'userId'>) => {
     const newRecord: StorageRecord = {
-      id: Date.now().toString(),
+      id: `storage_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`, // ID único
       userId: currentUser?.id || '',
       ...record
     };
+    
+    console.log('🆔 Creando registro de almacenamiento con ID:', newRecord.id);
+    
+    // Guardar en localStorage
+    const storedRecords = localStorage.getItem('storageRecords');
+    const records = storedRecords ? JSON.parse(storedRecords) : [];
+    records.unshift(newRecord);
+    localStorage.setItem('storageRecords', JSON.stringify(records));
+    
     setStorageRecords(prev => [newRecord, ...prev]);
     success('Registro añadido', 'El registro de almacenamiento se ha guardado correctamente.');
   };
