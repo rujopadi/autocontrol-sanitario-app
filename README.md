@@ -1,14 +1,33 @@
-# Run and deploy your AI Studio app
+# Autocontrol Sanitario Pro
 
-This contains everything you need to run your app locally.
+Sistema de autocontrol sanitario para establecimientos alimentarios desarrollado con React y TypeScript.
 
-## Run Locally
+## 🚀 Características
 
-**Prerequisites:**  Node.js
+- ✅ Sistema de autenticación de usuarios
+- ✅ Gestión de registros de recepción y transporte
+- ✅ Control de almacenamiento y temperaturas
+- ✅ Registros de limpieza e higiene
+- ✅ Trazabilidad de productos
+- ✅ Escandallos y costes
+- ✅ Fichas técnicas
+- ✅ Sistema de notificaciones moderno
+- ✅ Diseño responsive
+- ✅ Exportación a PDF y Excel
 
+## 🛠️ Tecnologías
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+- **Frontend**: React 18 + TypeScript
+- **Build Tool**: Vite
+- **Styling**: CSS personalizado
+- **PDF**: jsPDF + jsPDF-AutoTable
+- **Excel**: XLSX
+- **Containerización**: Docker
+- **Despliegue**: Dokploy
+
+## 📦 Instalación
+
+```bash
+# Clonar repositorio
+git clone https://github.com/rujopadi/autocontrol-sanitario-app.git
+cd autocontrol-sanitario

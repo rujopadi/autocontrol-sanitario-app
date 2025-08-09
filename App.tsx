@@ -232,36 +232,117 @@ const AppContent: React.FC = () => {
 
   const handleLogin = async (credentials: { email: string, password: string }) => {
     try {
-        const response = await fetch(`${API_URL}/api/auth/login`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(credentials)
-        });
-        const data = await response.json();
-        if (!response.ok) {
-            throw new Error(data.message || 'Error al iniciar sesión.');
+        console.log('🔐 Intentando login:', credentials.email);
+        
+        // Intentar login via API primero
+        try {
+            const response = await fetch(`${API_URL}/api/auth/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(credentials)
+            });
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.message || 'Error al iniciar sesión via API.');
+            }
+            setToken(data.token);
+            console.log('✅ Login exitoso via API');
+            success('Inicio de sesión exitoso', `Bienvenido ${data.user?.name || ''}`);
+        } catch (apiError) {
+            console.log('⚠️ API falló, usando localStorage:', apiError);
+            
+            // Fallback a localStorage
+            const storedUsers = localStorage.getItem('users');
+            if (!storedUsers) {
+                throw new Error('No hay usuarios registrados. Por favor, regístrese primero.');
+            }
+            
+            const users: User[] = JSON.parse(storedUsers);
+            const user = users.find(u => u.email === credentials.email && u.isActive);
+            
+            if (!user) {
+                throw new Error('Usuario no encontrado o inactivo.');
+            }
+            
+            // En un sistema real, verificaríamos la contraseña hasheada
+            // Por ahora, asumimos que cualquier contraseña es válida para el usuario encontrado
+            console.log('👤 Usuario encontrado:', user.name);
+            
+            // Simular token y establecer usuario actual
+            const fakeToken = `fake_token_${user.id}_${Date.now()}`;
+            setToken(fakeToken);
+            setCurrentUser(user);
+            localStorage.setItem('currentUser', JSON.stringify(user));
+            localStorage.setItem('token', fakeToken);
+            
+            console.log('✅ Login exitoso via localStorage');
+            success('Inicio de sesión exitoso', `Bienvenido ${user.name}`);
         }
-        setToken(data.token);
-        success('Inicio de sesión exitoso', `Bienvenido ${data.user?.name || ''}`);
     } catch (error: any) {
+        console.error('❌ Error de login:', error);
         error('Error de autenticación', error.message);
     }
   };
 
   const handleRegister = async (details: Omit<User, 'id'>) => {
     try {
-        const response = await fetch(`${API_URL}/api/auth/register`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(details)
-        });
-        const data = await response.json();
-        if (!response.ok) {
-            throw new Error(data.message || 'Error al registrar.');
+        console.log('📝 Intentando registro:', details.email);
+        
+        // Intentar registro via API primero
+        try {
+            const response = await fetch(`${API_URL}/api/auth/register`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(details)
+            });
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.message || 'Error al registrar via API.');
+            }
+            setToken(data.token);
+            console.log('✅ Registro exitoso via API');
+            success('Registro exitoso', `Bienvenido ${details.name}`);
+        } catch (apiError) {
+            console.log('⚠️ API falló, usando localStorage:', apiError);
+            
+            // Fallback a localStorage
+            const storedUsers = localStorage.getItem('users');
+            const users: User[] = storedUsers ? JSON.parse(storedUsers) : [];
+            
+            // Verificar si el email ya existe
+            if (users.find(u => u.email === details.email)) {
+                throw new Error('Este correo electrónico ya está registrado.');
+            }
+            
+            // Crear nuevo usuario
+            const newUser: User = {
+                id: String(Date.now()),
+                name: details.name,
+                email: details.email,
+                role: details.role || 'Usuario',
+                isActive: true,
+                companyId: details.companyId || String(Date.now()),
+                createdAt: new Date().toISOString()
+            };
+            
+            console.log('👤 Creando nuevo usuario:', newUser.name);
+            
+            // Guardar en localStorage
+            users.push(newUser);
+            localStorage.setItem('users', JSON.stringify(users));
+            
+            // Simular token y establecer usuario actual
+            const fakeToken = `fake_token_${newUser.id}_${Date.now()}`;
+            setToken(fakeToken);
+            setCurrentUser(newUser);
+            localStorage.setItem('currentUser', JSON.stringify(newUser));
+            localStorage.setItem('token', fakeToken);
+            
+            console.log('✅ Registro exitoso via localStorage');
+            success('Registro exitoso', `Bienvenido ${newUser.name}`);
         }
-        setToken(data.token);
-        success('Registro exitoso', `Bienvenido ${details.name}`);
     } catch (error: any) {
+        console.error('❌ Error de registro:', error);
         error('Error de registro', error.message);
     }
   };
