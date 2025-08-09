@@ -24,7 +24,14 @@ const Register: React.FC<RegisterProps> = ({ onRegister, onSwitchToLogin }) => {
         warning('Términos y condiciones', 'Debe aceptar los términos y condiciones para continuar.');
         return;
     }
-    onRegister({ name: name.trim(), email: email.trim(), password });
+    onRegister({ 
+      name: name.trim(), 
+      email: email.trim(), 
+      role: 'Administrador',
+      isActive: true,
+      companyId: `company_${Date.now()}`,
+      createdAt: new Date().toISOString()
+    });
   };
 
   return (

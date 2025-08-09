@@ -238,23 +238,66 @@ const AppContent: React.FC = () => {
         if (currentUser) {
             setIsLoading(true);
             try {
-                const [usersRes, establishmentRes, deliveryRes] = await Promise.all([
-                    apiFetch('/api/users'),
-                    apiFetch('/api/establishment'),
-                    apiFetch('/api/records/delivery')
-                ]);
-
-                if (!usersRes.ok || !establishmentRes.ok || !deliveryRes.ok) {
-                    throw new Error('Error al cargar datos del servidor.');
-                }
+                console.log('📊 Cargando datos de la aplicación...');
                 
-                const usersData = await usersRes.json();
-                const establishmentData = await establishmentRes.json();
-                const deliveryData = await deliveryRes.json();
+                // Intentar cargar desde API primero
+                try {
+                    const [usersRes, establishmentRes, deliveryRes] = await Promise.all([
+                        apiFetch('/api/users'),
+                        apiFetch('/api/establishment'),
+                        apiFetch('/api/records/delivery')
+                    ]);
 
-                setUsers(usersData);
-                setEstablishmentInfo(establishmentData);
-                setDeliveryRecords(deliveryData);
+                    if (!usersRes.ok || !establishmentRes.ok || !deliveryRes.ok) {
+                        throw new Error('Error al cargar datos del servidor.');
+                    }
+                    
+                    const usersData = await usersRes.json();
+                    const establishmentData = await establishmentRes.json();
+                    const deliveryData = await deliveryRes.json();
+
+                    setUsers(usersData);
+                    setEstablishmentInfo(establishmentData);
+                    setDeliveryRecords(deliveryData);
+                    console.log('✅ Datos cargados desde API');
+                } catch (apiError) {
+                    console.log('⚠️ API falló, usando localStorage:', apiError);
+                    
+                    // Fallback a localStorage
+                    const storedUsers = localStorage.getItem('users');
+                    const storedEstablishment = localStorage.getItem('establishmentInfo');
+                    const storedDeliveryRecords = localStorage.getItem('deliveryRecords');
+                    
+                    // Cargar usuarios (ya existen por el login)
+                    if (storedUsers) {
+                        setUsers(JSON.parse(storedUsers));
+                    }
+                    
+                    // Crear establecimiento por defecto si no existe
+                    if (storedEstablishment) {
+                        setEstablishmentInfo(JSON.parse(storedEstablishment));
+                    } else {
+                        const defaultEstablishment: EstablishmentInfo = {
+                            id: 'sibarilia_company',
+                            name: 'Sibarilia S.L.',
+                            address: 'Dirección de la empresa',
+                            phone: '123456789',
+                            email: 'info@sibarilia.com',
+                            cif: 'B12345678'
+                        };
+                        setEstablishmentInfo(defaultEstablishment);
+                        localStorage.setItem('establishmentInfo', JSON.stringify(defaultEstablishment));
+                    }
+                    
+                    // Cargar registros de entrega (pueden estar vacíos)
+                    if (storedDeliveryRecords) {
+                        setDeliveryRecords(JSON.parse(storedDeliveryRecords));
+                    } else {
+                        setDeliveryRecords([]);
+                    }
+                    
+                    console.log('✅ Datos cargados desde localStorage');
+                }
 
                 // Ejecutar migración de datos si es necesario
                 if (isMigrationNeeded()) {
@@ -263,8 +306,13 @@ const AppContent: React.FC = () => {
                 }
                 
             } catch (err) {
-                console.error(err);
-                error('Error de conexión', 'No se pudo conectar con el servidor.');
+                console.error('❌ Error crítico cargando datos:', err);
+                try {
+                    error('Error de conexión', 'No se pudo cargar los datos de la aplicación.');
+                } catch (notificationError) {
+                    console.error('❌ Error en notificación:', notificationError);
+                    alert('Error de conexión: No se pudo cargar los datos de la aplicación.');
+                }
             } finally {
                 setIsLoading(false);
             }
