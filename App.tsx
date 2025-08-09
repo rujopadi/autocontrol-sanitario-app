@@ -166,6 +166,49 @@ const AppContent: React.FC = () => {
       return response;
   }, [token]);
 
+  // Asegurar que siempre haya usuarios por defecto
+  useEffect(() => {
+    const ensureDefaultUsers = () => {
+      const storedUsers = localStorage.getItem('users');
+      if (!storedUsers || JSON.parse(storedUsers).length === 0) {
+        console.log('🔧 Inicializando usuarios por defecto...');
+        const defaultUsers: User[] = [
+          {
+            id: 'admin_user_1',
+            name: 'Rubén Sibarilia',
+            email: 'ruben@sibarilia.com',
+            role: 'Administrador',
+            isActive: true,
+            companyId: 'sibarilia_company',
+            createdAt: new Date().toISOString()
+          },
+          {
+            id: 'test_user_1',
+            name: 'Usuario de Prueba',
+            email: 'test@test.com',
+            role: 'Administrador',
+            isActive: true,
+            companyId: 'sibarilia_company',
+            createdAt: new Date().toISOString()
+          },
+          {
+            id: 'admin_user_2',
+            name: 'Administrador',
+            email: 'admin@admin.com',
+            role: 'Administrador',
+            isActive: true,
+            companyId: 'sibarilia_company',
+            createdAt: new Date().toISOString()
+          }
+        ];
+        localStorage.setItem('users', JSON.stringify(defaultUsers));
+        console.log('✅ Usuarios por defecto inicializados:', defaultUsers.map(u => u.email));
+      }
+    };
+    
+    ensureDefaultUsers();
+  }, []);
+
   // Cargar datos del usuario si hay un token
   useEffect(() => {
     const loadUser = async () => {
@@ -241,6 +284,13 @@ const AppContent: React.FC = () => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(credentials)
             });
+            
+            // Verificar si la respuesta es JSON válido
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                throw new Error('API devolvió respuesta no-JSON (probablemente HTML de error)');
+            }
+            
             const data = await response.json();
             if (!response.ok) {
                 throw new Error(data.message || 'Error al iniciar sesión via API.');
@@ -253,12 +303,52 @@ const AppContent: React.FC = () => {
             
             // Fallback a localStorage
             const storedUsers = localStorage.getItem('users');
+            console.log('📦 Usuarios en localStorage:', storedUsers);
+            
+            let users: User[] = [];
             if (!storedUsers) {
-                throw new Error('No hay usuarios registrados. Por favor, regístrese primero.');
+                console.log('⚠️ No hay usuarios en localStorage, creando usuarios por defecto...');
+                // Crear usuarios por defecto
+                const defaultUsers: User[] = [
+                    {
+                        id: 'admin_user_1',
+                        name: 'Rubén Sibarilia',
+                        email: 'ruben@sibarilia.com',
+                        role: 'Administrador',
+                        isActive: true,
+                        companyId: 'sibarilia_company',
+                        createdAt: new Date().toISOString()
+                    },
+                    {
+                        id: 'test_user_1',
+                        name: 'Usuario de Prueba',
+                        email: 'test@test.com',
+                        role: 'Administrador',
+                        isActive: true,
+                        companyId: 'sibarilia_company',
+                        createdAt: new Date().toISOString()
+                    },
+                    {
+                        id: 'admin_user_2',
+                        name: 'Administrador',
+                        email: 'admin@admin.com',
+                        role: 'Administrador',
+                        isActive: true,
+                        companyId: 'sibarilia_company',
+                        createdAt: new Date().toISOString()
+                    }
+                ];
+                users = defaultUsers;
+                localStorage.setItem('users', JSON.stringify(users));
+                console.log('✅ Usuarios por defecto creados:', users.map(u => u.email));
+            } else {
+                users = JSON.parse(storedUsers);
             }
             
-            const users: User[] = JSON.parse(storedUsers);
+            console.log('👥 Usuarios disponibles:', users.map(u => ({ email: u.email, name: u.name, isActive: u.isActive })));
             const user = users.find(u => u.email === credentials.email && u.isActive);
+            console.log('🔍 Buscando usuario con email:', credentials.email);
+            console.log('👤 Usuario encontrado:', user ? user.name : 'NO ENCONTRADO');
             
             if (!user) {
                 throw new Error('Usuario no encontrado o inactivo.');
@@ -278,9 +368,14 @@ const AppContent: React.FC = () => {
             console.log('✅ Login exitoso via localStorage');
             success('Inicio de sesión exitoso', `Bienvenido ${user.name}`);
         }
-    } catch (error: any) {
-        console.error('❌ Error de login:', error);
-        error('Error de autenticación', error.message);
+    } catch (err: any) {
+        console.error('❌ Error de login:', err);
+        try {
+            error('Error de autenticación', err.message);
+        } catch (notificationError) {
+            console.error('❌ Error en notificación:', notificationError);
+            alert(`Error de autenticación: ${err.message}`);
+        }
     }
   };
 
@@ -341,9 +436,14 @@ const AppContent: React.FC = () => {
             console.log('✅ Registro exitoso via localStorage');
             success('Registro exitoso', `Bienvenido ${newUser.name}`);
         }
-    } catch (error: any) {
-        console.error('❌ Error de registro:', error);
-        error('Error de registro', error.message);
+    } catch (err: any) {
+        console.error('❌ Error de registro:', err);
+        try {
+            error('Error de registro', err.message);
+        } catch (notificationError) {
+            console.error('❌ Error en notificación:', notificationError);
+            alert(`Error de registro: ${err.message}`);
+        }
     }
   };
   
