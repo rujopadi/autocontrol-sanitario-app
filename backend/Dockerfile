@@ -1,27 +1,49 @@
-# Dockerfile para el backend Node.js
-FROM node:18-alpine
+# Multi-stage build for production optimization
+FROM node:18-alpine AS builder
 
-# Instalar wget para healthcheck
-RUN apk add --no-cache wget
+# Install build dependencies
+RUN apk add --no-cache python3 make g++
 
-# Establecer directorio de trabajo
 WORKDIR /app
 
-# Copiar archivos de dependencias
+# Copy package files
 COPY package*.json ./
+RUN npm ci --only=production && npm cache clean --force
 
-# Instalar dependencias
-RUN npm install --only=production
+# Production stage
+FROM node:18-alpine AS production
 
-# Copiar código fuente
-COPY . .
+# Create app user for security
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S autocontrol -u 1001
 
-# Exponer puerto
+# Install runtime dependencies
+RUN apk add --no-cache \
+    mongodb-tools \
+    curl \
+    && rm -rf /var/cache/apk/*
+
+WORKDIR /app
+
+# Copy node_modules from builder stage
+COPY --from=builder --chown=autocontrol:nodejs /app/node_modules ./node_modules
+
+# Copy application code
+COPY --chown=autocontrol:nodejs . ./
+
+# Create necessary directories
+RUN mkdir -p logs backups uploads temp && \
+    chown -R autocontrol:nodejs logs backups uploads temp
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:5000/health || exit 1
+
+# Switch to non-root user
+USER autocontrol
+
+# Expose port
 EXPOSE 5000
 
-# Variables de entorno por defecto
-ENV NODE_ENV=production
-ENV PORT=5000
-
-# Comando por defecto
-CMD ["npm", "start"]
+# Start application
+CMD ["node", "server.js"]

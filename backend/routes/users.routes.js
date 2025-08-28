@@ -1,131 +1,222 @@
 
 const express = require('express');
 const router = express.Router();
-const bcrypt = require('bcryptjs');
-const auth = require('../middleware/auth');
+const { auth, requireOrgAdmin, addTenantContext } = require('../middleware/auth');
+const { validateUserInvitation, validateUserUpdate, validateObjectId } = require('../middleware/validation');
 const User = require('../models/User');
 
-// Middleware para comprobar si el usuario es administrador
-const adminAuth = async (req, res, next) => {
-    try {
-        // El superusuario "rujo" siempre tiene permisos de administrador
-        if (req.user.id === 'superuser-rujo') {
-            return next();
-        }
-
-        const user = await User.findById(req.user.id);
-        if (!user || !user.isAdmin) {
-            return res.status(403).json({ message: 'Acceso denegado. Se requiere rol de administrador.' });
-        }
-        next();
-    } catch (error) {
-        res.status(500).json({ message: 'Error del servidor al verificar permisos.' });
-    }
-};
-
 // @route   GET api/users
-// @desc    Obtener todos los usuarios
+// @desc    Obtener usuarios de la organización
 // @access  Private (Admin)
-router.get('/', auth, async (req, res) => {
+router.get('/', auth, requireOrgAdmin, addTenantContext, async (req, res) => {
     try {
-        const users = await User.find().select('-password');
-        res.json(users);
-    } catch (err) {
-        console.error(err.message);
-        res.status(500).send('Error del servidor');
+        const users = await User.find({ organizationId: req.tenantId })
+            .select('-password -emailVerificationToken -passwordResetToken')
+            .populate('createdBy', 'name email')
+            .sort({ createdAt: -1 });
+
+        res.json({
+            success: true,
+            data: users
+        });
+    } catch (error) {
+        console.error('Error obteniendo usuarios:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error interno del servidor'
+        });
     }
 });
 
 // @route   POST api/users
-// @desc    Crear un nuevo usuario
+// @desc    Crear/invitar un nuevo usuario a la organización
 // @access  Private (Admin)
-router.post('/', [auth, adminAuth], async (req, res) => {
-    const { name, email, password } = req.body;
+router.post('/', auth, requireOrgAdmin, validateUserInvitation, async (req, res) => {
     try {
-        let user = await User.findOne({ email });
-        if (user) {
-            return res.status(400).json({ message: 'El correo electrónico ya está en uso.' });
+        const { name, email, role = 'User' } = req.body;
+
+        // Verificar si el usuario ya existe globalmente
+        const existingUser = await User.findOne({ email });
+        if (existingUser) {
+            return res.status(400).json({
+                success: false,
+                message: 'El correo electrónico ya está registrado'
+            });
         }
 
-        user = new User({ name, email, password });
-        const salt = await bcrypt.genSalt(10);
-        user.password = await bcrypt.hash(password, salt);
-        await user.save();
-        
-        const userResponse = await User.findById(user.id).select('-password');
-        res.status(201).json(userResponse);
+        // Crear usuario temporal (sin contraseña, requerirá activación)
+        const user = new User({
+            name,
+            email,
+            password: 'temp_password_' + Date.now(), // Temporal, se cambiará en activación
+            organizationId: req.user.organizationId,
+            role,
+            isActive: false, // Inactivo hasta que complete el registro
+            isEmailVerified: false,
+            createdBy: req.user.id
+        });
 
-    } catch (err) {
-        console.error(err.message);
-        res.status(500).send('Error del servidor');
+        // Generar token de verificación
+        const emailToken = user.generateEmailVerificationToken();
+        await user.save();
+
+        // TODO: Enviar email de invitación
+        // await sendInvitationEmail(user.email, emailToken, req.user.organization.name);
+
+        const userResponse = await User.findById(user._id)
+            .select('-password -emailVerificationToken -passwordResetToken')
+            .populate('createdBy', 'name email');
+
+        res.status(201).json({
+            success: true,
+            message: 'Usuario invitado exitosamente',
+            data: userResponse,
+            // Solo para desarrollo
+            devInvitationToken: process.env.NODE_ENV === 'development' ? emailToken : undefined
+        });
+
+    } catch (error) {
+        console.error('Error creando usuario:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error interno del servidor'
+        });
     }
 });
 
 // @route   PUT api/users/:id
-// @desc    Actualizar un usuario
+// @desc    Actualizar un usuario de la organización
 // @access  Private (Admin)
-router.put('/:id', [auth, adminAuth], async (req, res) => {
-    const { name, email } = req.body;
-    const userIdToEdit = req.params.id;
-
-    // Un admin no puede editarse a sí mismo a través de esta ruta
-    if (req.user.id === userIdToEdit) {
-        return res.status(400).json({ message: 'Los administradores no pueden editar su propia cuenta desde este panel.' });
-    }
-
+router.put('/:id', auth, requireOrgAdmin, validateObjectId('id'), validateUserUpdate, async (req, res) => {
     try {
-        let user = await User.findById(userIdToEdit);
+        const { name, role, isActive } = req.body;
+        const userIdToEdit = req.params.id;
+
+        // Verificar que el usuario pertenece a la organización
+        const user = await User.findOne({
+            _id: userIdToEdit,
+            organizationId: req.user.organizationId
+        });
+
         if (!user) {
-            return res.status(404).json({ message: 'Usuario no encontrado.' });
-        }
-        
-        // No se puede editar a otro admin
-        if (user.isAdmin) {
-             return res.status(400).json({ message: 'No se puede editar a otro administrador.' });
+            return res.status(404).json({
+                success: false,
+                message: 'Usuario no encontrado'
+            });
         }
 
-        // Si el email ha cambiado, verificar que no esté en uso
-        if (email && email !== user.email) {
-            const existingUser = await User.findOne({ email });
-            if (existingUser) {
-                return res.status(400).json({ message: 'El correo electrónico ya está en uso por otra cuenta.' });
+        // Prevenir que un admin se desactive a sí mismo
+        if (userIdToEdit === req.user.id && isActive === false) {
+            return res.status(400).json({
+                success: false,
+                message: 'No puedes desactivar tu propia cuenta'
+            });
+        }
+
+        // Prevenir que se quede sin admins
+        if (user.role === 'Admin' && role !== 'Admin') {
+            const adminCount = await User.countDocuments({
+                organizationId: req.user.organizationId,
+                role: 'Admin',
+                isActive: true,
+                _id: { $ne: userIdToEdit }
+            });
+
+            if (adminCount === 0) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Debe haber al menos un administrador activo'
+                });
             }
-            user.email = email;
         }
 
-        if (name) {
-            user.name = name;
-        }
+        // Actualizar campos
+        const updateData = {};
+        if (name !== undefined) updateData.name = name;
+        if (role !== undefined) updateData.role = role;
+        if (isActive !== undefined) updateData.isActive = isActive;
 
-        await user.save();
+        const updatedUser = await User.findByIdAndUpdate(
+            userIdToEdit,
+            { $set: updateData },
+            { new: true, runValidators: true }
+        ).select('-password -emailVerificationToken -passwordResetToken');
 
-        const userResponse = await User.findById(user.id).select('-password');
-        res.json(userResponse);
+        res.json({
+            success: true,
+            message: 'Usuario actualizado exitosamente',
+            data: updatedUser
+        });
 
-    } catch (err) {
-        console.error(err.message);
-        res.status(500).send('Error del servidor');
+    } catch (error) {
+        console.error('Error actualizando usuario:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error interno del servidor'
+        });
     }
 });
 
 // @route   DELETE api/users/:id
-// @desc    Eliminar un usuario
+// @desc    Desactivar un usuario de la organización
 // @access  Private (Admin)
-router.delete('/:id', [auth, adminAuth], async (req, res) => {
+router.delete('/:id', auth, requireOrgAdmin, validateObjectId('id'), async (req, res) => {
     try {
-        const user = await User.findById(req.params.id);
+        const userIdToDelete = req.params.id;
+
+        // Verificar que el usuario pertenece a la organización
+        const user = await User.findOne({
+            _id: userIdToDelete,
+            organizationId: req.user.organizationId
+        });
+
         if (!user) {
-            return res.status(404).json({ message: 'Usuario no encontrado.' });
+            return res.status(404).json({
+                success: false,
+                message: 'Usuario no encontrado'
+            });
         }
-        // No permitir que un admin se elimine a sí mismo o al primer admin
-        if (user.isAdmin) {
-             return res.status(400).json({ message: 'No se puede eliminar a un administrador.' });
+
+        // Prevenir que un admin se elimine a sí mismo
+        if (userIdToDelete === req.user.id) {
+            return res.status(400).json({
+                success: false,
+                message: 'No puedes eliminar tu propia cuenta'
+            });
         }
-        await user.deleteOne();
-        res.json({ message: 'Usuario eliminado.' });
-    } catch (err) {
-        console.error(err.message);
-        res.status(500).send('Error del servidor');
+
+        // Prevenir que se quede sin admins
+        if (user.role === 'Admin') {
+            const adminCount = await User.countDocuments({
+                organizationId: req.user.organizationId,
+                role: 'Admin',
+                isActive: true,
+                _id: { $ne: userIdToDelete }
+            });
+
+            if (adminCount === 0) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'No se puede eliminar el último administrador'
+                });
+            }
+        }
+
+        // Desactivar usuario en lugar de eliminarlo (soft delete)
+        user.isActive = false;
+        await user.save();
+
+        res.json({
+            success: true,
+            message: 'Usuario desactivado exitosamente'
+        });
+
+    } catch (error) {
+        console.error('Error eliminando usuario:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error interno del servidor'
+        });
     }
 });
 

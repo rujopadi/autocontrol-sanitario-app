@@ -1,77 +1,125 @@
 
 const express = require('express');
 const router = express.Router();
-const auth = require('../middleware/auth');
+const { auth, addTenantContext } = require('../middleware/auth');
+const { validateObjectId } = require('../middleware/validation');
 const DeliveryRecord = require('../models/DeliveryRecord');
 
 // @route   GET api/records/delivery
-// @desc    Obtener todos los registros de recepción
+// @desc    Obtener registros de recepción de la organización
 // @access  Private
-router.get('/', auth, async (req, res) => {
+router.get('/', auth, addTenantContext, async (req, res) => {
     try {
-        const records = await DeliveryRecord.find().sort({ createdAt: -1 });
-        res.json(records);
-    } catch (err) {
-        console.error(err.message);
-        res.status(500).send('Error del servidor');
+        const records = await DeliveryRecord.find({ organizationId: req.tenantId })
+            .sort({ createdAt: -1 })
+            .populate('registeredById', 'name email');
+
+        res.json({
+            success: true,
+            data: records
+        });
+    } catch (error) {
+        console.error('Error obteniendo registros de recepción:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error interno del servidor'
+        });
     }
 });
 
 // @route   POST api/records/delivery
 // @desc    Crear un nuevo registro de recepción
 // @access  Private
-router.post('/', auth, async (req, res) => {
-    const { supplierId, productTypeId, temperature, receptionDate, docsOk, albaranImage } = req.body;
-    
-    // Debug logging
-    console.log('📥 Backend recibió:', {
-        supplierId,
-        productTypeId,
-        temperature,
-        receptionDate,
-        docsOk,
-        albaranImage: albaranImage ? `[Imagen de ${albaranImage.length} caracteres]` : 'Sin imagen'
-    });
-    
+router.post('/', auth, addTenantContext, async (req, res) => {
     try {
-        const newRecord = new DeliveryRecord({
-            userId: req.user.id,
+        const { 
+            supplierId, 
+            productTypeId, 
+            temperature, 
+            receptionDate, 
+            docsOk, 
+            albaranImage,
+            registeredBy,
+            registeredById 
+        } = req.body;
+        
+        console.log('📥 Backend recibió registro de recepción:', {
             supplierId,
             productTypeId,
             temperature,
             receptionDate,
             docsOk,
-            albaranImage
+            albaranImage: albaranImage ? `[Imagen de ${albaranImage.length} caracteres]` : 'Sin imagen',
+            organizationId: req.tenantId
+        });
+        
+        const newRecord = new DeliveryRecord({
+            organizationId: req.tenantId,
+            userId: req.user.id, // Mantener compatibilidad
+            supplierId,
+            productTypeId,
+            temperature,
+            receptionDate,
+            docsOk,
+            albaranImage,
+            registeredBy: registeredBy || req.user.name,
+            registeredById: registeredById || req.user.id,
+            registeredAt: new Date().toISOString()
         });
         
         const record = await newRecord.save();
         
-        console.log('💾 Guardado en BD:', {
+        console.log('💾 Registro guardado:', {
             id: record._id,
-            albaranImage: record.albaranImage ? `[Imagen de ${record.albaranImage.length} caracteres]` : 'Sin imagen'
+            organizationId: record.organizationId,
+            albaranImage: record.albaranImage ? `[Imagen guardada]` : 'Sin imagen'
         });
         
-        res.status(201).json(record);
-    } catch (err) {
-        console.error('❌ Error al guardar:', err.message);
-        res.status(500).send('Error del servidor');
+        res.status(201).json({
+            success: true,
+            message: 'Registro de recepción creado exitosamente',
+            data: record
+        });
+        
+    } catch (error) {
+        console.error('❌ Error creando registro de recepción:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error interno del servidor'
+        });
     }
 });
 
 // @route   DELETE api/records/delivery/:id
-// @desc    Eliminar un registro de recepción
+// @desc    Eliminar un registro de recepción de la organización
 // @access  Private
-router.delete('/:id', auth, async (req, res) => {
+router.delete('/:id', auth, addTenantContext, validateObjectId('id'), async (req, res) => {
     try {
-        let record = await DeliveryRecord.findById(req.params.id);
+        const record = await DeliveryRecord.findOne({
+            _id: req.params.id,
+            organizationId: req.tenantId
+        });
+
         if (!record) {
-            return res.status(404).json({ message: 'Registro no encontrado.' });
+            return res.status(404).json({
+                success: false,
+                message: 'Registro no encontrado'
+            });
         }
+
         await record.deleteOne();
-        res.json({ message: 'Registro eliminado.' });
-    } catch (err) {
-        console.error(err.message);
-        res.status(500).send('Error del servidor');
+        
+        res.json({
+            success: true,
+            message: 'Registro de recepción eliminado exitosamente'
+        });
+        
+    } catch (error) {
+        console.error('Error eliminando registro de recepción:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error interno del servidor'
+        });
     }
 });
 

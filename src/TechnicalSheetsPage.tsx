@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { TechnicalSheet, Ingredient } from './types';
+import { TechnicalSheet, Ingredient, EstablishmentInfo } from './types';
 
 // --- Interfaces ---
 interface IngredientFormState extends Omit<Ingredient, 'id'> {
@@ -10,11 +10,12 @@ interface TechnicalSheetsPageProps {
     sheets: TechnicalSheet[];
     onAddSheet: (sheet: Omit<TechnicalSheet, 'id'>) => void;
     onDeleteSheet: (id: string) => void;
+    establishmentInfo: EstablishmentInfo;
 }
 
 
 // --- Component ---
-const TechnicalSheetsPage: React.FC<TechnicalSheetsPageProps> = ({ sheets, onAddSheet, onDeleteSheet }) => {
+const TechnicalSheetsPage: React.FC<TechnicalSheetsPageProps> = ({ sheets, onAddSheet, onDeleteSheet, establishmentInfo }) => {
     // --- State ---
     const [isCreateFormOpen, setIsCreateFormOpen] = useState(true);
     const [expandedSheetId, setExpandedSheetId] = useState<string | null>(sheets.length > 0 ? sheets[0].id : null);
@@ -87,7 +88,13 @@ const TechnicalSheetsPage: React.FC<TechnicalSheetsPageProps> = ({ sheets, onAdd
 
     return (
         <>
-            <h1>Fichas Técnicas de Productos</h1>
+            <div className="page-header-with-org">
+                <h1>Fichas Técnicas de Productos</h1>
+                <div className="org-context">
+                    <span className="org-label">Organización:</span>
+                    <span className="org-name">{establishmentInfo.name || 'Mi Organización'}</span>
+                </div>
+            </div>
             <div className="page-grid">
                 <div className="card">
                     <h2

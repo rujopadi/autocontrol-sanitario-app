@@ -1,299 +1,273 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import Login from './Login';
-import Register from './Register';
+import React, { useState } from 'react';
+import { AuthProvider, OrganizationProvider, AppDataProvider, useAuth, useAppData, useOrganization } from './contexts';
+import { LoginForm, RegisterForm, ForgotPasswordForm, ResetPasswordForm, EmailVerificationForm } from './components/auth';
 import Dashboard from './Dashboard';
-import { EstablishmentInfo, User, Supplier, ProductType, DeliveryRecord, StorageUnit, StorageRecord, DailySurface, DailyCleaningRecord, FrequentArea, Costing, OutgoingRecord, ElaboratedRecord, TechnicalSheet } from './types';
+import DataMigrationWizard from './components/DataMigrationWizard';
+import { configureApiService } from './services';
+import { authUserToUser } from './types/auth';
+import { hasLocalStorageData, isMigrationCompleted } from './utils/dataMigration';
+import './styles/auth.css';
 
+// Componente principal de la aplicación con contextos
+const AppContent: React.FC = () => {
+  const { user, isLoading, isAuthenticated, error } = useAuth();
+  const [authView, setAuthView] = useState<'login' | 'register' | 'forgot-password' | 'reset-password' | 'verify-email'>('login');
+  const [resetToken, setResetToken] = useState<string | null>(null);
+  const [verificationToken, setVerificationToken] = useState<string | null>(null);
 
-// Se leerá desde las variables de entorno que configuraremos en Dokploy
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-
-const App: React.FC = () => {
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
-  const [authView, setAuthView] = useState<'login' | 'register'>('login');
-  const [isLoading, setIsLoading] = useState(true);
-
-  // --- ESTADOS DE DATOS ---
-  const [users, setUsers] = useState<User[]>([]);
-  const [establishmentInfo, setEstablishmentInfo] = useState<EstablishmentInfo | null>(null);
-  const [deliveryRecords, setDeliveryRecords] = useState<DeliveryRecord[]>([]);
-  // ... resto de estados
-  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
-  const [productTypes, setProductTypes] = useState<ProductType[]>([]);
-  const [storageUnits, setStorageUnits] = useState<StorageUnit[]>([]);
-  const [storageRecords, setStorageRecords] = useState<StorageRecord[]>([]);
-  const [dailySurfaces, setDailySurfaces] = useState<DailySurface[]>([]);
-  const [dailyCleaningRecords, setDailyCleaningRecords] = useState<DailyCleaningRecord[]>([]);
-  const [frequentAreas, setFrequentAreas] = useState<FrequentArea[]>([]);
-  const [costings, setCostings] = useState<Costing[]>([]);
-  const [outgoingRecords, setOutgoingRecords] = useState<OutgoingRecord[]>([]);
-  const [elaboratedRecords, setElaboratedRecords] = useState<ElaboratedRecord[]>([]);
-  const [technicalSheets, setTechnicalSheets] = useState<TechnicalSheet[]>([]);
-  
-
-  const apiFetch = useCallback(async (url: string, options: RequestInit = {}) => {
-      const headers = {
-          'Content-Type': 'application/json',
-          ...(token && { 'x-auth-token': token }),
-          ...options.headers,
-      };
-      
-      const response = await fetch(`${API_URL}${url}`, { ...options, headers });
-      
-      if (response.status === 401) {
-          // Token inválido o expirado
-          handleLogout();
-          throw new Error('Sesión expirada.');
-      }
-      
-      return response;
-  }, [token]);
-
-  // Cargar datos del usuario si hay un token
-  useEffect(() => {
-    const loadUser = async () => {
-        if (token) {
-            localStorage.setItem('token', token);
-            try {
-                const res = await apiFetch('/api/auth');
-                const userData = await res.json();
-                if (res.ok) {
-                    setCurrentUser(userData);
-                } else {
-                    handleLogout();
-                }
-            } catch (error) {
-                console.error("Error loading user:", error);
-                handleLogout();
-            }
-        }
-        setIsLoading(false);
-    };
-    loadUser();
-  }, [token, apiFetch]);
-
-  // Cargar todos los datos de la aplicación una vez que el usuario está logueado
-  useEffect(() => {
-    const fetchData = async () => {
-        if (currentUser) {
-            setIsLoading(true);
-            try {
-                const [usersRes, establishmentRes, deliveryRes] = await Promise.all([
-                    apiFetch('/api/users'),
-                    apiFetch('/api/establishment'),
-                    apiFetch('/api/records/delivery')
-                ]);
-
-                if (!usersRes.ok || !establishmentRes.ok || !deliveryRes.ok) {
-                    throw new Error('Error al cargar datos del servidor.');
-                }
-                
-                const usersData = await usersRes.json();
-                const establishmentData = await establishmentRes.json();
-                const deliveryData = await deliveryRes.json();
-
-                setUsers(usersData);
-                setEstablishmentInfo(establishmentData);
-                setDeliveryRecords(deliveryData);
-                
-            } catch (error) {
-                console.error(error);
-                alert('No se pudo conectar con el servidor.');
-            } finally {
-                setIsLoading(false);
-            }
-        }
-    };
-    fetchData();
-  }, [currentUser, apiFetch]);
-
-  const handleLogin = async (credentials: { email: string, password: string }) => {
-    try {
-        const response = await fetch(`${API_URL}/api/auth/login`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(credentials)
-        });
-        const data = await response.json();
-        if (!response.ok) {
-            throw new Error(data.message || 'Error al iniciar sesión.');
-        }
-        setToken(data.token);
-    } catch (error: any) {
-        alert(error.message);
+  // Verificar tokens en la URL al cargar
+  React.useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const resetTokenParam = urlParams.get('reset-token');
+    const verifyTokenParam = urlParams.get('verify-token');
+    
+    if (resetTokenParam) {
+      setResetToken(resetTokenParam);
+      setAuthView('reset-password');
+      // Limpiar URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+    } else if (verifyTokenParam) {
+      setVerificationToken(verifyTokenParam);
+      setAuthView('verify-email');
+      // Limpiar URL
+      window.history.replaceState({}, document.title, window.location.pathname);
     }
-  };
+  }, []);
 
-  const handleRegister = async (details: Omit<User, 'id'>) => {
-    try {
-        const response = await fetch(`${API_URL}/api/auth/register`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(details)
-        });
-        const data = await response.json();
-        if (!response.ok) {
-            throw new Error(data.message || 'Error al registrar.');
-        }
-        setToken(data.token);
-    } catch (error: any) {
-        alert(error.message);
-    }
-  };
-  
-  const handleLogout = () => {
-    setCurrentUser(null);
-    setToken(null);
-    localStorage.removeItem('token');
-    setUsers([]);
-    setDeliveryRecords([]);
-    setAuthView('login');
-  };
-  
-  const handleAddDeliveryRecord = async (record: Omit<DeliveryRecord, 'id' | 'userId'>) => {
-    try {
-        const response = await apiFetch(`/api/records/delivery`, {
-            method: 'POST',
-            body: JSON.stringify(record)
-        });
-        const newRecord = await response.json();
-         if (!response.ok) throw new Error(newRecord.message || 'Error al guardar el registro.');
-        setDeliveryRecords(prev => [newRecord, ...prev]);
-    } catch (error: any) {
-        alert(error.message);
-    }
-  };
-
-  const handleDeleteDeliveryRecord = async (id: string) => {
-    try {
-        const response = await apiFetch(`/api/records/delivery/${id}`, { method: 'DELETE' });
-        if (!response.ok) throw new Error('Error al eliminar el registro.');
-        setDeliveryRecords(prev => prev.filter(r => r.id !== id));
-    } catch (error: any) {
-        alert(error.message);
-    }
-  };
-  
-  const handleAddUser = async (details: Omit<User, 'id'>) => {
-    try {
-        const response = await apiFetch('/api/users', {
-            method: 'POST',
-            body: JSON.stringify(details)
-        });
-        const newUser = await response.json();
-        if (!response.ok) throw new Error(newUser.message || 'Error al crear usuario.');
-        setUsers(prev => [...prev, newUser]);
-    } catch (error: any) {
-        alert(error.message);
-    }
-  };
-
-  const handleUpdateUser = async (id: string, details: { name: string; email: string }) => {
-    try {
-        const response = await apiFetch(`/api/users/${id}`, {
-            method: 'PUT',
-            body: JSON.stringify(details)
-        });
-        const updatedUser = await response.json();
-        if (!response.ok) throw new Error(updatedUser.message || 'Error al actualizar el usuario.');
-        setUsers(prev => prev.map(u => (u.id === id ? updatedUser : u)));
-    } catch (error: any) {
-        alert(error.message);
-    }
-  };
-
-  const handleDeleteUser = async (id: string) => {
-      try {
-        const response = await apiFetch(`/api/users/${id}`, { method: 'DELETE' });
-        if (!response.ok) throw new Error('Error al eliminar el usuario.');
-        setUsers(prev => prev.filter(u => u.id !== id));
-    } catch (error: any) {
-        alert(error.message);
-    }
-  };
-  
-  const handleUpdateEstablishmentInfo = async (info: EstablishmentInfo) => {
-      try {
-          const response = await apiFetch('/api/establishment', {
-              method: 'POST',
-              body: JSON.stringify(info)
-          });
-          const updatedInfo = await response.json();
-          if (!response.ok) throw new Error(updatedInfo.message || 'Error al actualizar la información.');
-          setEstablishmentInfo(updatedInfo);
-      } catch (error: any) {
-          alert(error.message);
-      }
-  };
-
+  // Pantalla de carga
   if (isLoading) {
-      return <div className="login-container"><h1>Cargando...</h1></div>;
-  }
-
-  if (!currentUser) {
-    return authView === 'login' ? (
-      <Login onLoginSuccess={handleLogin} onSwitchToRegister={() => setAuthView('register')} />
-    ) : (
-      <Register onRegister={handleRegister} onSwitchToLogin={() => setAuthView('login')} />
+    return (
+      <div className="auth-container">
+        <div className="auth-card">
+          <div className="auth-header">
+            <div className="loading-icon">
+              <span className="spinner large"></span>
+            </div>
+            <h1>Autocontrol Sanitario Pro</h1>
+            <p className="auth-subtitle">Cargando aplicación...</p>
+          </div>
+        </div>
+      </div>
     );
   }
-  
-  if (!establishmentInfo) {
-      // Este estado puede ocurrir si el admin no ha configurado la info todavía
-      // Podemos renderizar solo la página de settings o un loader específico
-      // return <div className="login-container"><h1>Configuración inicial requerida...</h1></div>;
+
+  // Usuario no autenticado - mostrar formularios de auth
+  if (!isAuthenticated || !user) {
+    switch (authView) {
+      case 'register':
+        return (
+          <RegisterForm 
+            onSwitchToLogin={() => setAuthView('login')} 
+          />
+        );
+      
+      case 'forgot-password':
+        return (
+          <ForgotPasswordForm 
+            onSwitchToLogin={() => setAuthView('login')} 
+          />
+        );
+      
+      case 'reset-password':
+        return (
+          <ResetPasswordForm 
+            token={resetToken || ''}
+            onSuccess={() => setAuthView('login')}
+            onSwitchToLogin={() => setAuthView('login')} 
+          />
+        );
+      
+      case 'verify-email':
+        return (
+          <EmailVerificationForm 
+            token={verificationToken || undefined}
+            onSuccess={() => window.location.reload()}
+            onSwitchToLogin={() => setAuthView('login')} 
+          />
+        );
+      
+      default:
+        return (
+          <LoginForm 
+            onSwitchToRegister={() => setAuthView('register')}
+            onSwitchToForgotPassword={() => setAuthView('forgot-password')}
+          />
+        );
+    }
   }
 
+  // Usuario autenticado pero email no verificado
+  if (!user.emailVerified) {
+    return (
+      <EmailVerificationForm 
+        onSuccess={() => window.location.reload()}
+        onSwitchToLogin={() => setAuthView('login')} 
+      />
+    );
+  }
+
+  // Usuario autenticado y verificado - mostrar dashboard
+  return <DashboardWrapper />;
+};
+
+// Wrapper del Dashboard que usa los contextos de datos
+const DashboardWrapper: React.FC = () => {
+  const { user, logout } = useAuth();
+  const {
+    deliveryRecords,
+    storageRecords,
+    technicalSheets,
+    suppliers,
+    productTypes,
+    storageUnits,
+    dailySurfaces,
+    dailyCleaningRecords,
+    frequentAreas,
+    costings,
+    outgoingRecords,
+    elaboratedRecords,
+    establishmentInfo,
+    isLoading,
+    // Métodos para manejar datos
+    addDeliveryRecord,
+    deleteDeliveryRecord,
+    addStorageRecord,
+    deleteStorageRecord,
+    addTechnicalSheet,
+    deleteTechnicalSheet,
+    addSupplier,
+    deleteSupplier,
+    addProductType,
+    deleteProductType,
+    addStorageUnit,
+    deleteStorageUnit,
+    updateEstablishmentInfo,
+  } = useAppData();
+
+  const { users } = useOrganization();
+  
+  // Estado para controlar el wizard de migración
+  const [showMigrationWizard, setShowMigrationWizard] = useState(() => {
+    return hasLocalStorageData() && !isMigrationCompleted();
+  });
+
+  // Convertir usuarios de organización al formato esperado por Dashboard
+  const dashboardUsers = users.map(orgUser => ({
+    id: orgUser.id,
+    name: orgUser.name,
+    email: orgUser.email,
+    role: orgUser.role,
+    isActive: orgUser.isActive,
+  }));
+
+  if (isLoading) {
+    return (
+      <div className="auth-container">
+        <div className="auth-card">
+          <div className="auth-header">
+            <div className="loading-icon">
+              <span className="spinner large"></span>
+            </div>
+            <h1>Cargando datos...</h1>
+            <p className="auth-subtitle">Preparando tu espacio de trabajo</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <Dashboard
-      currentUser={currentUser}
-      onLogout={handleLogout}
-      users={users}
-      onAddUser={handleAddUser}
-      onDeleteUser={handleDeleteUser}
-      onUpdateUser={handleUpdateUser}
+    <>
+      {showMigrationWizard && (
+        <DataMigrationWizard
+          onComplete={() => setShowMigrationWizard(false)}
+          onSkip={() => setShowMigrationWizard(false)}
+        />
+      )}
+      
+      <Dashboard
+      currentUser={authUserToUser(user)}
+      onLogout={logout}
+      users={dashboardUsers}
+      onAddUser={() => {}} // TODO: Implementar con OrganizationContext
+      onDeleteUser={() => {}} // TODO: Implementar con OrganizationContext
+      onUpdateUser={() => {}} // TODO: Implementar con OrganizationContext
       deliveryRecords={deliveryRecords}
-      onAddDeliveryRecord={handleAddDeliveryRecord}
-      onDeleteDeliveryRecord={handleDeleteDeliveryRecord}
-      establishmentInfo={establishmentInfo!} // Usamos ! porque asumimos que el dashboard no se renderiza sin esto
-      onUpdateEstablishmentInfo={handleUpdateEstablishmentInfo}
-      // Pasa el resto de props y handlers necesarios...
+      onAddDeliveryRecord={addDeliveryRecord}
+      onDeleteDeliveryRecord={deleteDeliveryRecord}
+      establishmentInfo={establishmentInfo || {
+        name: user.organization.name,
+        address: '',
+        phone: '',
+        email: user.email,
+        manager: user.name,
+        activityType: '',
+        registrationNumber: '',
+      }}
+      onUpdateEstablishmentInfo={updateEstablishmentInfo}
       suppliers={suppliers}
-      onAddSupplier={() => {}}
-      onDeleteSupplier={() => {}}
+      onAddSupplier={addSupplier}
+      onDeleteSupplier={deleteSupplier}
       productTypes={productTypes}
-      onAddProductType={() => {}}
-      onDeleteProductType={() => {}}
+      onAddProductType={addProductType}
+      onDeleteProductType={deleteProductType}
       storageUnits={storageUnits}
-      onAddStorageUnit={() => {}}
-      onDeleteStorageUnit={() => {}}
+      onAddStorageUnit={addStorageUnit}
+      onDeleteStorageUnit={deleteStorageUnit}
       storageRecords={storageRecords}
-      onAddStorageRecord={() => {}}
-      onDeleteStorageRecord={() => {}}
+      onAddStorageRecord={addStorageRecord}
+      onDeleteStorageRecord={deleteStorageRecord}
       dailySurfaces={dailySurfaces}
-      onAddDailySurface={() => {}}
-      onDeleteDailySurface={() => {}}
+      onAddDailySurface={() => {}} // TODO: Implementar
+      onDeleteDailySurface={() => {}} // TODO: Implementar
       dailyCleaningRecords={dailyCleaningRecords}
-      onAddDailyCleaningRecord={() => {}}
-      onDeleteDailyCleaningRecord={() => {}}
+      onAddDailyCleaningRecord={() => {}} // TODO: Implementar
+      onDeleteDailyCleaningRecord={() => {}} // TODO: Implementar
       frequentAreas={frequentAreas}
-      onAddFrequentArea={() => {}}
-      onDeleteFrequentArea={() => {}}
-      onCleanFrequentArea={() => {}}
+      onAddFrequentArea={() => {}} // TODO: Implementar
+      onDeleteFrequentArea={() => {}} // TODO: Implementar
+      onCleanFrequentArea={() => {}} // TODO: Implementar
       costings={costings}
-      onSetCostings={setCostings}
+      onSetCostings={() => {}} // TODO: Implementar
       outgoingRecords={outgoingRecords}
-      onAddOutgoingRecord={() => {}}
-      onDeleteOutgoingRecord={() => {}}
+      onAddOutgoingRecord={() => {}} // TODO: Implementar
+      onDeleteOutgoingRecord={() => {}} // TODO: Implementar
       elaboratedRecords={elaboratedRecords}
-      onAddElaboratedRecord={() => {}}
-      onDeleteElaboratedRecord={() => {}}
+      onAddElaboratedRecord={() => {}} // TODO: Implementar
+      onDeleteElaboratedRecord={() => {}} // TODO: Implementar
       technicalSheets={technicalSheets}
-      onAddTechnicalSheet={() => {}}
-      onDeleteTechnicalSheet={() => {}}
+      onAddTechnicalSheet={addTechnicalSheet}
+      onDeleteTechnicalSheet={deleteTechnicalSheet}
     />
+    </>
+  );
+};
+
+// Componente principal con todos los providers
+const App: React.FC = () => {
+  // Configurar el servicio API cuando se inicializa la app
+  React.useEffect(() => {
+    configureApiService(
+      (newToken: string) => {
+        // Callback para cuando se renueva el token
+        console.log('Token renovado automáticamente');
+      },
+      () => {
+        // Callback para cuando hay error de autenticación
+        console.log('Error de autenticación, redirigiendo al login');
+        window.location.reload();
+      }
+    );
+  }, []);
+
+  return (
+    <AuthProvider>
+      <OrganizationProvider>
+        <AppDataProvider>
+          <AppContent />
+        </AppDataProvider>
+      </OrganizationProvider>
+    </AuthProvider>
   );
 };
 

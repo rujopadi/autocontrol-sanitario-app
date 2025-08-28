@@ -143,7 +143,13 @@ const StoragePage: React.FC<StoragePageProps> = ({ users, units, records, onAddU
 
     return (
         <>
-            <h1>Gestión de Almacenamiento</h1>
+            <div className="page-header-with-org">
+                <h1>Gestión de Almacenamiento</h1>
+                <div className="org-context">
+                    <span className="org-label">Organización:</span>
+                    <span className="org-name">{establishmentInfo.name || 'Mi Organización'}</span>
+                </div>
+            </div>
             <div className="storage-grid">
                 <div className="card">
                      <h2 

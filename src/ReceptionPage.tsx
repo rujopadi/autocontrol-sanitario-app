@@ -161,7 +161,13 @@ const ReceptionPage: React.FC<ReceptionPageProps> = ({
 
     return (
         <>
-            <h1>Recepción y Transporte</h1>
+            <div className="page-header-with-org">
+                <h1>Recepción y Transporte</h1>
+                <div className="org-context">
+                    <span className="org-label">Organización:</span>
+                    <span className="org-name">{establishmentInfo.name || 'Mi Organización'}</span>
+                </div>
+            </div>
             <div className="reception-grid">
                 <div className="card">
                     <h2 

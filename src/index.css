@@ -1,3 +1,12 @@
+/* Importar estilos de autenticación */
+@import './styles/auth.css';
+
+/* Importar estilos de organización */
+@import './styles/organization.css';
+
+/* Importar estilos de migración */
+@import './styles/migration.css';
+
 /* Global Styles & CSS Variables */
 :root {
   --primary-color: #005A9C;
@@ -1539,4 +1548,109 @@ body {
         padding-top: 15px;
         padding-bottom: 15px;
     }
+}/* Esti
+los para el separador del sidebar */
+.nav-separator {
+  margin: 16px 0;
+  padding: 0 16px;
+}
+
+.nav-separator hr {
+  border: none;
+  height: 1px;
+  background-color: rgba(255, 255, 255, 0.2);
+  margin-bottom: 8px;
+}
+
+.separator-label {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+/* Mejoras para los iconos de organización */
+.nav-item .nav-icon svg {
+  width: 20px;
+  height: 20px;
+}/* 
+Estilos mejorados para el header */
+.header-info {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.organization-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.org-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--primary-color);
+}
+
+.user-name {
+  font-size: 12px;
+  color: var(--text-color);
+  opacity: 0.8;
+}
+
+@media (max-width: 768px) {
+  .header-info {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .organization-info {
+    align-items: center;
+  }
+}/
+* Estilos para headers de página con contexto de organización */
+.page-header-with-org {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid var(--border-color);
+}
+
+.page-header-with-org h1 {
+  margin: 0;
+  color: var(--primary-color);
+}
+
+.org-context {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.org-label {
+  color: var(--text-color);
+  opacity: 0.7;
+}
+
+.org-name {
+  font-weight: 600;
+  color: var(--primary-color);
+  background: rgba(0, 90, 156, 0.1);
+  padding: 4px 12px;
+  border-radius: 16px;
+  border: 1px solid rgba(0, 90, 156, 0.2);
+}
+
+@media (max-width: 768px) {
+  .page-header-with-org {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
 }

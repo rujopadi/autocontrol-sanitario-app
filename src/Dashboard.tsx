@@ -10,7 +10,8 @@ import Hamburger from './Hamburger';
 import TechnicalSheetsPage from './TechnicalSheetsPage';
 import HelpButton from './HelpButton';
 import HelpModal from './HelpModal';
-import SettingsPage from './SettingsPage'; // Import SettingsPage
+import SettingsPage from './SettingsPage';
+import { OrganizationSettingsPage, UserManagementPage, OrganizationDashboard } from './components/organization';
 import { User, Supplier, ProductType, DeliveryRecord, StorageUnit, StorageRecord, DailySurface, DailyCleaningRecord, FrequentArea, Costing, OutgoingRecord, ElaboratedRecord, TechnicalSheet, EstablishmentInfo } from './types';
 
 // --- PROPS INTERFACE ---
@@ -62,11 +63,11 @@ interface DashboardProps {
 }
 
 const calculateNextDueDate = (lastCleaned: string | null, frequencyDays: number): Date | null => {
-    if (!lastCleaned) return new Date();
-    const lastCleanedDate = new Date(lastCleaned);
-    const nextDueDate = new Date(lastCleanedDate);
-    nextDueDate.setDate(lastCleanedDate.getDate() + frequencyDays);
-    return nextDueDate;
+  if (!lastCleaned) return new Date();
+  const lastCleanedDate = new Date(lastCleaned);
+  const nextDueDate = new Date(lastCleanedDate);
+  nextDueDate.setDate(lastCleanedDate.getDate() + frequencyDays);
+  return nextDueDate;
 };
 
 const Dashboard: React.FC<DashboardProps> = (props) => {
@@ -84,31 +85,31 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
 
   // --- DYNAMIC WIDGET CALCULATIONS ---
   const today = new Date();
-  today.setHours(0,0,0,0);
+  today.setHours(0, 0, 0, 0);
 
   const pendingCleanings = props.frequentAreas.filter(area => {
-      const nextDueDate = calculateNextDueDate(area.lastCleaned, area.frequencyDays);
-      if (!nextDueDate) return true; // Never cleaned, so it's pending
-      nextDueDate.setHours(0,0,0,0);
-      return nextDueDate.getTime() <= today.getTime();
+    const nextDueDate = calculateNextDueDate(area.lastCleaned, area.frequencyDays);
+    if (!nextDueDate) return true; // Never cleaned, so it's pending
+    nextDueDate.setHours(0, 0, 0, 0);
+    return nextDueDate.getTime() <= today.getTime();
   }).length;
 
   const tempAlerts = props.storageUnits.reduce((count, unit) => {
-      if (unit.minTemp === undefined || unit.maxTemp === undefined) {
-          return count;
-      }
-      const latestRecord = props.storageRecords
-          .filter(r => r.unitId === unit.id)
-          .sort((a, b) => new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime())
-          [0];
-      if (!latestRecord) {
-          return count;
-      }
-      const temp = parseFloat(latestRecord.temperature);
-      if (temp < unit.minTemp || temp > unit.maxTemp) {
-          return count + 1;
-      }
+    if (unit.minTemp === undefined || unit.maxTemp === undefined) {
       return count;
+    }
+    const latestRecord = props.storageRecords
+      .filter(r => r.unitId === unit.id)
+      .sort((a, b) => new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime())
+    [0];
+    if (!latestRecord) {
+      return count;
+    }
+    const temp = parseFloat(latestRecord.temperature);
+    if (temp < unit.minTemp || temp > unit.maxTemp) {
+      return count + 1;
+    }
+    return count;
   }, 0);
 
   const todayStr = new Date().toISOString().slice(0, 10);
@@ -141,71 +142,78 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
           </>
         );
       case 'Recepción y Transporte':
-        return <ReceptionPage 
-            users={props.users}
-            suppliers={props.suppliers}
-            productTypes={props.productTypes}
-            records={props.deliveryRecords}
-            onAddSupplier={props.onAddSupplier}
-            onDeleteSupplier={props.onDeleteSupplier}
-            onAddProductType={props.onAddProductType}
-            onDeleteProductType={props.onDeleteProductType}
-            onAddRecord={props.onAddDeliveryRecord}
-            onDeleteRecord={props.onDeleteDeliveryRecord}
-            establishmentInfo={props.establishmentInfo}
+        return <ReceptionPage
+          users={props.users}
+          suppliers={props.suppliers}
+          productTypes={props.productTypes}
+          records={props.deliveryRecords}
+          onAddSupplier={props.onAddSupplier}
+          onDeleteSupplier={props.onDeleteSupplier}
+          onAddProductType={props.onAddProductType}
+          onDeleteProductType={props.onDeleteProductType}
+          onAddRecord={props.onAddDeliveryRecord}
+          onDeleteRecord={props.onDeleteDeliveryRecord}
+          establishmentInfo={props.establishmentInfo}
         />;
       case 'Almacenamiento':
-        return <StoragePage 
-            users={props.users}
-            units={props.storageUnits}
-            records={props.storageRecords}
-            onAddUnit={props.onAddStorageUnit}
-            onDeleteUnit={props.onDeleteStorageUnit}
-            onAddRecord={props.onAddStorageRecord}
-            onDeleteRecord={props.onDeleteStorageRecord}
-            establishmentInfo={props.establishmentInfo}
+        return <StoragePage
+          users={props.users}
+          units={props.storageUnits}
+          records={props.storageRecords}
+          onAddUnit={props.onAddStorageUnit}
+          onDeleteUnit={props.onDeleteStorageUnit}
+          onAddRecord={props.onAddStorageRecord}
+          onDeleteRecord={props.onDeleteStorageRecord}
+          establishmentInfo={props.establishmentInfo}
         />;
       case 'Fichas Técnicas':
-        return <TechnicalSheetsPage 
-            sheets={props.technicalSheets}
-            onAddSheet={props.onAddTechnicalSheet}
-            onDeleteSheet={props.onDeleteTechnicalSheet}
+        return <TechnicalSheetsPage
+          sheets={props.technicalSheets}
+          onAddSheet={props.onAddTechnicalSheet}
+          onDeleteSheet={props.onDeleteTechnicalSheet}
+          establishmentInfo={props.establishmentInfo}
         />;
       case 'Limpieza e Higiene':
-        return <CleaningPage 
-            users={props.users}
-            surfaces={props.dailySurfaces}
-            dailyRecords={props.dailyCleaningRecords}
-            areas={props.frequentAreas}
-            onAddSurface={props.onAddDailySurface}
-            onDeleteSurface={props.onDeleteDailySurface}
-            onCleanSurface={props.onAddDailyCleaningRecord}
-            onDeleteRecord={props.onDeleteDailyCleaningRecord}
-            onAddArea={props.onAddFrequentArea}
-            onDeleteArea={props.onDeleteFrequentArea}
-            onCleanArea={props.onCleanFrequentArea}
-            establishmentInfo={props.establishmentInfo}
+        return <CleaningPage
+          users={props.users}
+          surfaces={props.dailySurfaces}
+          dailyRecords={props.dailyCleaningRecords}
+          areas={props.frequentAreas}
+          onAddSurface={props.onAddDailySurface}
+          onDeleteSurface={props.onDeleteDailySurface}
+          onCleanSurface={props.onAddDailyCleaningRecord}
+          onDeleteRecord={props.onDeleteDailyCleaningRecord}
+          onAddArea={props.onAddFrequentArea}
+          onDeleteArea={props.onDeleteFrequentArea}
+          onCleanArea={props.onCleanFrequentArea}
+          establishmentInfo={props.establishmentInfo}
         />;
       case 'Trazabilidad':
         return <TraceabilityPage
-            users={props.users}
-            outgoingRecords={props.outgoingRecords}
-            elaboratedRecords={props.elaboratedRecords}
-            onAddOutgoingRecord={props.onAddOutgoingRecord}
-            onDeleteOutgoing={props.onDeleteOutgoingRecord}
-            onAddElaboratedRecord={props.onAddElaboratedRecord}
-            onDeleteElaborated={props.onDeleteElaboratedRecord}
-            establishmentInfo={props.establishmentInfo}
-         />;
+          users={props.users}
+          outgoingRecords={props.outgoingRecords}
+          elaboratedRecords={props.elaboratedRecords}
+          onAddOutgoingRecord={props.onAddOutgoingRecord}
+          onDeleteOutgoing={props.onDeleteOutgoingRecord}
+          onAddElaboratedRecord={props.onAddElaboratedRecord}
+          onDeleteElaborated={props.onDeleteElaboratedRecord}
+          establishmentInfo={props.establishmentInfo}
+        />;
       case 'Escandallos':
-        return <EscandallosPage 
-            costings={props.costings}
-            onSetCostings={props.onSetCostings}
+        return <EscandallosPage
+          costings={props.costings}
+          onSetCostings={props.onSetCostings}
         />;
       case 'Usuarios':
         return isCurrentUserAdmin ? <UsersPage users={props.users} onAddUser={props.onAddUser} onDeleteUser={props.onDeleteUser} onUpdateUser={props.onUpdateUser} /> : <h1>Acceso Denegado</h1>;
       case 'Configuración':
         return isCurrentUserAdmin ? <SettingsPage info={props.establishmentInfo} onUpdateInfo={props.onUpdateEstablishmentInfo} /> : <h1>Acceso Denegado</h1>;
+      case 'Dashboard Organización':
+        return isCurrentUserAdmin ? <OrganizationDashboard /> : <h1>Acceso Denegado</h1>;
+      case 'Configuración Organización':
+        return isCurrentUserAdmin ? <OrganizationSettingsPage /> : <h1>Acceso Denegado</h1>;
+      case 'Gestión de Usuarios':
+        return isCurrentUserAdmin ? <UserManagementPage /> : <h1>Acceso Denegado</h1>;
       default:
         // Placeholder for other pages, showing the title
         return <h1>{activePage}</h1>;
@@ -219,8 +227,11 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
         <div className="main-content-overlay" onClick={() => setSidebarOpen(false)}></div>
         <header className="header">
           <Hamburger onClick={() => setSidebarOpen(!isSidebarOpen)} />
-          <div className="user-info">
-            <span>Usuario: <strong>{props.currentUser.name}</strong></span>
+          <div className="header-info">
+            <div className="organization-info">
+              <span className="org-name">{props.establishmentInfo.name || 'Mi Organización'}</span>
+              <span className="user-name">Usuario: <strong>{props.currentUser.name}</strong></span>
+            </div>
             <button className="btn-logout" onClick={props.onLogout}>
               Cerrar Sesión
             </button>
@@ -231,10 +242,10 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
         </div>
         <HelpButton onClick={() => setHelpModalOpen(true)} />
       </main>
-      <HelpModal 
-        isOpen={isHelpModalOpen} 
-        onClose={() => setHelpModalOpen(false)} 
-        page={activePage} 
+      <HelpModal
+        isOpen={isHelpModalOpen}
+        onClose={() => setHelpModalOpen(false)}
+        page={activePage}
       />
     </div>
   );
